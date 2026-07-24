@@ -1,0 +1,20 @@
+[
+  { "condition": "Typhoid", "hostel": "Angola", "date": "2026-07-18" },
+  { "condition": "Typhoid", "hostel": "Angola", "date": "2026-07-19" },
+  { "condition": "Typhoid", "hostel": "Angola", "date": "2026-07-19" },
+  { "condition": "Typhoid", "hostel": "Angola", "date": "2026-07-20" },
+  { "condition": "Typhoid", "hostel": "Angola", "date": "2026-07-21" },
+  { "condition": "Typhoid", "hostel": "Angola", "date": "2026-07-21" },
+  { "condition": "Malaria", "hostel": "Awo", "date": "2026-07-15" },
+  { "condition": "Malaria", "hostel": "Awo", "date": "2026-07-17" },
+  { "condition": "Malaria", "hostel": "Mozambique", "date": "2026-07-16" },
+  { "condition": "Malaria", "hostel": "Mozambique", "date": "2026-07-20" },
+  { "condition": "Upper Respiratory Infection", "hostel": "Angola", "date": "2026-07-14" },
+  { "condition": "Upper Respiratory Infection", "hostel": "Alumni", "date": "2026-07-16" },
+  { "condition": "Malaria", "hostel": "Angola", "date": "2026-07-19" },
+  { "condition": "Typhoid", "hostel": "Awo", "date": "2026-07-21" },
+  { "condition": "Gastroenteritis", "hostel": "Mozambique", "date": "2026-07-18" },
+  { "condition": "Gastroenteritis", "hostel": "Mozambique", "date": "2026-07-19" },
+  { "condition": "Hypertension (routine)", "hostel": "Alumni", "date": "2026-07-12" },
+  { "condition": "Asthma (routine)", "hostel": "Angola", "date": "2026-07-13" }
+]
