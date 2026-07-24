@@ -1,8 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 
-export default function StudentVisitPage({ params }: { params: { twinId: string } }) {
+export default function StudentVisitPage() {
+  const params = useParams();
+  const twinId = params?.twinId as string;
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
