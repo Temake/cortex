@@ -1,0 +1,207 @@
+@import "tailwindcss";
+
+/*
+ * Cortex / CareBridge OAU — Design Tokens
+ * Inspired by the Ontomorph visual language:
+ * clean, minimal, whitespace-heavy, health-professional aesthetic.
+ */
+
+@theme {
+  /* Background */
+  --color-bg: #FBFDFE;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F4F7F9;
+
+  /* Borders */
+  --color-border: #E2E8ED;
+  --color-border-light: #EEF2F5;
+
+  /* Text */
+  --color-ink: #1A2024;
+  --color-ink-secondary: #5A6A75;
+  --color-ink-muted: #99A8B2;
+
+  /* Accent — dark charcoal à la Ontomorph */
+  --color-accent: #283238;
+  --color-accent-hover: #364349;
+
+  /* Status */
+  --color-ok: #22C55E;
+  --color-warn: #EAB308;
+  --color-alert: #EF4444;
+  --color-info: #3B82F6;
+
+  /* Radii */
+  --radius-card: 14px;
+  --radius-btn: 10px;
+  --radius-pill: 999px;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+}
+
+/* ── Base reset ───────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Utility classes ──────────────────────────────────────────── */
+.font-display {
+  font-family: var(--font-source-serif), ui-serif, Georgia, serif;
+}
+
+/* Status dot — tiny inline indicator */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot-ok { background: var(--color-ok); }
+.status-dot-warn { background: var(--color-warn); }
+.status-dot-alert { background: var(--color-alert); }
+.status-dot-info { background: var(--color-info); }
+
+/* Pill / chip tag */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-ink-secondary);
+}
+.pill-ok { border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
+.pill-warn { border-color: #fde68a; background: #fefce8; color: #854d0e; }
+.pill-alert { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+
+/* ── Interaction alert banner ─────────────────────────────────── */
+.interaction-alert {
+  border-radius: var(--radius-card);
+  padding: 1.25rem 1.5rem;
+  border: 2px solid;
+}
+.interaction-alert-major {
+  border-color: #EF4444;
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+}
+.interaction-alert-moderate {
+  border-color: #EAB308;
+  background: linear-gradient(135deg, #fefce8, #fef9c3);
+}
+.interaction-alert-minor {
+  border-color: #3B82F6;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+}
+.interaction-alert-safe {
+  border-color: #22C55E;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+}
+
+/* ── Card ─────────────────────────────────────────────────────── */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Primary button ───────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: var(--radius-btn);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+.btn-primary {
+  background: var(--color-accent);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--color-accent-hover);
+  box-shadow: var(--shadow-card-hover);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--color-ink);
+  border: 1px solid var(--color-border);
+}
+.btn-ghost:hover {
+  background: var(--color-surface-alt);
+}
+
+/* ── Form inputs ──────────────────────────────────────────────── */
+.input {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-btn);
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  transition: border-color 0.15s ease;
+  outline: none;
+}
+.input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(40,50,56,0.08);
+}
+.input::placeholder {
+  color: var(--color-ink-muted);
+}
+
+textarea.input {
+  resize: vertical;
+  min-height: 80px;
+}
+
+select.input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7A85' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-ink-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
