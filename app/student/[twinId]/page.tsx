@@ -1,153 +1,172 @@
-'use client';
+/**
+ * /student/[twinId] — the student's plain-language view of their last visit.
+ *
+ * Posts to /api/summary. The explanation is templated from HOLON-resolved
+ * concept names rather than generated: AI narration is a real-twin feature and
+ * the sandbox host returns null for it, so there is nothing to narrate with.
+ *
+ * Tone is deliberately second-person and jargon-light — this is the one screen a
+ * patient reads, so the clinical codes sit in a separate "what was recorded"
+ * panel rather than in the prose.
+ */
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { Activity, CircleCheck, FileText, MapPin, RotateCcw } from "lucide-react";
 
-export default function StudentVisitPage() {
-  const params = useParams();
-  const twinId = params?.twinId as string;
-  const [data, setData] = useState<any>(null);
+import { PageShell } from "@/components/site-nav";
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorNote,
+  Eyebrow,
+  Pill,
+  Reveal,
+  Skeleton,
+} from "@/components/ui";
+import {
+  ApiClientError,
+  formatDate,
+  postJson,
+  relativeTime,
+  type SummaryResponse,
+} from "@/lib/contracts";
+
+export default function StudentSummaryPage() {
+  const params = useParams<{ twinId: string }>();
+  const twinId = params?.twinId ?? "";
+
+  const [data, setData] = useState<SummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<{ code: string; message: string } | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // No token: the route falls back to the single sandbox twin, which is what
+      // this page is for. twinId is carried in the URL for the demo's sake.
+      setData(await postJson<SummaryResponse>("/api/summary", { twinId }));
+    } catch (err) {
+      setError(
+        err instanceof ApiClientError
+          ? { code: err.code, message: err.message }
+          : { code: "UNKNOWN", message: "Could not load your summary." },
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [twinId]);
 
   useEffect(() => {
-    const fetchSummary = async () => {
-      try {
-        const res = await fetch('/api/summary', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({})
-        });
-        const json = await res.json();
-        
-        if (!json.ok) {
-          throw new Error(json.error?.message || 'Failed to load visit summary');
-        }
-        
-        setData(json);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchSummary();
-  }, []);
+    void load();
+  }, [load]);
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-        <a href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight text-[var(--color-ink)]">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="16.8" cy="7.2" r="3.5" fill="currentColor"/>
-            <circle cx="16.8" cy="16.7" r="3.5" fill="currentColor"/>
-            <circle cx="7.3" cy="7.2" r="3.5" fill="currentColor"/>
-            <circle cx="7.3" cy="16.7" r="3.5" fill="currentColor"/>
-            <circle cx="2.7" cy="10.4" r="1.2" fill="currentColor"/>
-            <circle cx="21.3" cy="10.4" r="1.2" fill="currentColor"/>
-            <circle cx="2.7" cy="13.7" r="1.2" fill="currentColor"/>
-            <circle cx="21.3" cy="13.7" r="1.2" fill="currentColor"/>
-            <circle cx="13.6" cy="2.7" r="1.2" fill="currentColor"/>
-            <circle cx="10.3" cy="2.7" r="1.2" fill="currentColor"/>
-            <circle cx="13.6" cy="21.4" r="1.2" fill="currentColor"/>
-            <circle cx="10.3" cy="21.4" r="1.2" fill="currentColor"/>
-          </svg>
-          Cortex
-        </a>
-        <div className="text-sm font-medium text-[var(--color-ink-secondary)]">
-          Your visit summary
+    <PageShell width="narrow">
+      <Reveal>
+        <Eyebrow className="mb-3.5">Student · your record</Eyebrow>
+        <h1 className="text-[2.25rem] leading-[1.1] sm:text-[2.75rem]">
+          Your last visit,
+          <span className="headline-mute"> in plain language.</span>
+        </h1>
+      </Reveal>
+
+      {loading ? (
+        <div className="mt-10 space-y-4" aria-hidden>
+          <Skeleton className="h-5 w-1/3" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-28 w-full" />
         </div>
-      </nav>
-
-      <main className="flex-1 p-6 max-w-3xl mx-auto w-full flex flex-col gap-6">
-        <div>
-          <h1 className="text-3xl font-display font-semibold mb-2 text-[var(--color-ink)]">Your visit summary</h1>
-          <p className="text-[var(--color-ink-secondary)]">Here's what happened at the Health Centre, in plain language.</p>
+      ) : error ? (
+        <div className="mt-10 space-y-4">
+          <ErrorNote code={error.code} message={error.message} />
+          <Button variant="secondary" onClick={() => void load()} icon={RotateCcw}>
+            Try again
+          </Button>
         </div>
-
-        {loading && (
-          <div className="flex flex-col gap-6 animate-pulse">
-            <div className="card h-64 bg-[var(--color-surface)] rounded-xl"></div>
-            <div className="card h-48 bg-[var(--color-surface)] rounded-xl"></div>
-          </div>
-        )}
-
-        {error && (
-          <div className="card bg-red-50 text-red-900 border-red-200">
-            <h3 className="font-semibold text-lg mb-2">Unable to load summary</h3>
-            <p>{error}</p>
-          </div>
-        )}
-
-        {data && (
-          <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-            <div className="card">
-              <p className="text-lg leading-relaxed text-[var(--color-ink)] mb-6">
-                {data.summary}
-              </p>
-              
-              {data.lines && data.lines.length > 0 && (
-                <>
-                  <hr className="border-[var(--color-border)] my-6" />
-                  <ul className="space-y-3 list-disc pl-5 text-[var(--color-ink)]">
-                    {data.lines.map((line: string, i: number) => (
-                      <li key={i} className="pl-2">{line}</li>
-                    ))}
-                  </ul>
-                </>
-              )}
-              
-              <div className="mt-8 pt-6 border-t border-[var(--color-border)]">
-                <span className="inline-block px-3 py-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full text-xs text-[var(--color-ink-muted)]">
-                  Source: {data.knowledgeSource || 'OMOP Standardised Record'}
-                </span>
-              </div>
+      ) : !data?.visitId ? (
+        <Card className="mt-10">
+          <EmptyState icon={FileText} title="No visit recorded yet">
+            {data?.summary ??
+              "Once a nurse logs a visit at the Health Centre, your summary will appear here."}
+          </EmptyState>
+        </Card>
+      ) : (
+        <div className="mt-10 space-y-6">
+          {/* Visit meta */}
+          <Reveal>
+            <div className="flex flex-wrap items-center gap-2">
+              <Pill tone="ok" icon={CircleCheck}>
+                Visit recorded
+              </Pill>
+              <Pill>{formatDate(data.occurredAt)}</Pill>
+              <span className="text-[0.8125rem] text-ink-3">{relativeTime(data.occurredAt)}</span>
+              {data.hostel ? <Pill icon={MapPin}>{data.hostel}</Pill> : null}
             </div>
+          </Reveal>
 
-            <div className="card">
-              <h2 className="text-xl font-semibold mb-6 text-[var(--color-ink)]">Visit details</h2>
-              
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-[var(--color-border)]">
-                  <span className="font-medium text-[var(--color-ink)]">Date</span>
-                  <span className="text-[var(--color-ink-secondary)]">
-                    {data.occurredAt ? new Date(data.occurredAt).toLocaleDateString() : 'N/A'}
-                  </span>
-                </div>
-                
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-[var(--color-border)]">
-                  <span className="font-medium text-[var(--color-ink)]">Hostel</span>
-                  <span className="text-[var(--color-ink-secondary)]">{data.hostel || 'N/A'}</span>
-                </div>
-                
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-[var(--color-border)]">
-                  <span className="font-medium text-[var(--color-ink)]">Recorded Events</span>
-                  <span className="text-[var(--color-ink-secondary)]">{data.eventCount || 0}</span>
-                </div>
-
-                {data.items && data.items.map((item: any, idx: number) => (
-                  <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-[var(--color-border)] last:border-0">
-                    <span className="font-medium text-[var(--color-ink)]">{item.label}</span>
-                    <div className="flex items-center gap-3 mt-1 sm:mt-0">
-                      <span className="text-[var(--color-ink-secondary)]">{item.value}</span>
-                      {item.conceptName && (
-                        <span className="text-xs bg-[var(--color-surface)] border border-[var(--color-border)] px-2 py-1 rounded text-[var(--color-ink-muted)]">
-                          {item.conceptName} ({item.vocabularyId})
-                        </span>
-                      )}
-                    </div>
-                  </div>
+          {/* The explanation */}
+          <Reveal delay={80}>
+            <Card className="p-6 sm:p-8">
+              <ul className="list-none space-y-4 p-0">
+                {data.lines.map((line, i) => (
+                  <li key={i} className="flex gap-3.5">
+                    <span
+                      className="mt-2 size-1.5 shrink-0 rounded-full bg-ink-3"
+                      aria-hidden
+                    />
+                    <p className="text-[1.0625rem] leading-relaxed text-ink">{line}</p>
+                  </li>
                 ))}
-              </div>
-            </div>
-            
-            <p className="text-sm text-center text-[var(--color-ink-muted)] mt-4 mb-8">
-              This record travels with you. If you are referred to OAUTHC, the doctor there can access this visit directly.
+              </ul>
+            </Card>
+          </Reveal>
+
+          {/* What was recorded, with the clinical codes kept separate */}
+          {data.items.length ? (
+            <Reveal delay={140}>
+              <Card className="overflow-hidden">
+                <div className="flex items-center gap-2.5 border-b border-line bg-canvas-soft px-5 py-4">
+                  <Activity size={15} className="text-ink-3" aria-hidden />
+                  <p className="text-[0.9375rem] font-medium">What was recorded</p>
+                </div>
+
+                <ul className="list-none divide-y divide-line-soft p-0">
+                  {data.items.map((item, i) => (
+                    <li key={`${item.code}-${i}`} className="px-5 py-4">
+                      <p className="mb-1.5 font-mono text-[0.625rem] uppercase tracking-widest text-ink-3">
+                        {item.label}
+                      </p>
+                      <p className="text-[0.9375rem] leading-relaxed text-ink">{item.value}</p>
+                      {item.conceptName ? (
+                        <div className="mt-2.5">
+                          <Pill tone="info" mono>
+                            {item.conceptName}
+                            {item.vocabularyId ? ` · ${item.vocabularyId}` : ""}
+                          </Pill>
+                        </div>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            </Reveal>
+          ) : null}
+
+          <Reveal delay={190}>
+            <p className="px-1 text-[0.8125rem] leading-relaxed text-ink-3">
+              Resolved through the HOLON clinical knowledge API
+              {data.knowledgeSource === "fallback"
+                ? " — currently unreachable, so concept names came from an offline reference table."
+                : "."}{" "}
+              This is your record; you control who sees it.
             </p>
-          </div>
-        )}
-      </main>
-    </div>
+          </Reveal>
+        </div>
+      )}
+    </PageShell>
   );
 }

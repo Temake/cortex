@@ -1,118 +1,289 @@
-'use client';
+/**
+ * Landing page and role switcher.
+ *
+ * Structured like a standard product site rather than a bare menu: hero with a
+ * right-hand visual, a three-step "how it works" band, then the role entries.
+ * The two-tone headline (dark opening clause, muted continuation) is the
+ * signature move of the Ontomorph reference and is used consistently.
+ *
+ * Client component because the STEPS/ROLES tables hold lucide icon components
+ * and pass them as props — a component function cannot cross the server/client
+ * boundary. Nearly everything rendered here (Reveal, Card, SiteNav) is already
+ * a client component, so this costs no meaningful extra bundle.
+ */
+"use client";
 
-import Link from 'next/link';
+import Link from "next/link";
+import {
+  ArrowRight,
+  BarChart3,
+  ClipboardPlus,
+  FileText,
+  QrCode,
+  ShieldCheck,
+  Stethoscope,
+  User,
+} from "lucide-react";
+
+import { HeroVisual } from "@/components/hero-visual";
+import { SiteFooter, SiteNav } from "@/components/site-nav";
+import { ButtonLink, Card, Eyebrow, Pill, Reveal, SectionHeading } from "@/components/ui";
+
+const STEPS = [
+  {
+    icon: ClipboardPlus,
+    title: "Log the visit once",
+    body: "A nurse records the complaint, vitals and medications at the Health Centre. Each becomes a health event on the student's digital twin.",
+    tags: ["Twin events", "Vitals", "Medications"],
+  },
+  {
+    icon: QrCode,
+    title: "Refer with scoped consent",
+    body: "Referral to OAUTHC issues a time-boxed, scoped token as a QR code. It carries only the systems the visit touched, and expires on its own.",
+    tags: ["Scoped", "48h expiry", "QR handoff"],
+  },
+  {
+    icon: ShieldCheck,
+    title: "Prescribe safely",
+    body: "The receiving doctor sees the history immediately. Before prescribing, the new drug is checked against the patient's existing medications through HOLON.",
+    tags: ["HOLON concepts", "Drug interactions", "RxNorm"],
+  },
+];
+
+const ROLES = [
+  {
+    href: "/intake",
+    n: "01",
+    icon: ClipboardPlus,
+    title: "Nurse",
+    body: "Log an intake visit at the Health Centre, then raise a referral to OAUTHC.",
+  },
+  {
+    href: "/doctor",
+    n: "02",
+    icon: Stethoscope,
+    title: "Doctor",
+    body: "Open a referral token, read the scoped history, and check a new prescription.",
+  },
+  {
+    href: "/student/5a4d0000-0000-0000-0000-000000000102",
+    n: "03",
+    icon: User,
+    title: "Student",
+    body: "Read a plain-language explanation of your last visit, resolved through HOLON.",
+  },
+  {
+    href: "/clusters",
+    n: "04",
+    icon: BarChart3,
+    title: "Clusters",
+    body: "Phase 2 preview: condition clusters by hostel, from mocked aggregate data.",
+    preview: true,
+  },
+];
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--color-bg)]">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight text-[var(--color-ink)]">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="16.8" cy="7.2" r="3.5" fill="currentColor"/>
-            <circle cx="16.8" cy="16.7" r="3.5" fill="currentColor"/>
-            <circle cx="7.3" cy="7.2" r="3.5" fill="currentColor"/>
-            <circle cx="7.3" cy="16.7" r="3.5" fill="currentColor"/>
-            <circle cx="2.7" cy="10.4" r="1.2" fill="currentColor"/>
-            <circle cx="21.3" cy="10.4" r="1.2" fill="currentColor"/>
-            <circle cx="2.7" cy="13.7" r="1.2" fill="currentColor"/>
-            <circle cx="21.3" cy="13.7" r="1.2" fill="currentColor"/>
-            <circle cx="13.6" cy="2.7" r="1.2" fill="currentColor"/>
-            <circle cx="10.3" cy="2.7" r="1.2" fill="currentColor"/>
-            <circle cx="13.6" cy="21.4" r="1.2" fill="currentColor"/>
-            <circle cx="10.3" cy="21.4" r="1.2" fill="currentColor"/>
-          </svg>
-          Cortex
-        </Link>
-      </nav>
+    <div className="flex min-h-dvh flex-col">
+      <SiteNav />
 
-      <main className="flex-1 flex flex-col items-center px-6 pt-24 pb-32">
-        <div className="w-full max-w-5xl">
-          <header className="mb-20 max-w-3xl">
-            <div className="text-[var(--color-ink-muted)] text-sm font-semibold tracking-widest uppercase mb-4">
-              CORTEX · CAREBRIDGE OAU
+      <main className="flex-1">
+        {/* ── Hero ─────────────────────────────────────────────────── */}
+        <section className="mx-auto max-w-6xl px-5 pb-20 pt-14 sm:px-8 sm:pb-28 sm:pt-20">
+          <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+            <div>
+              <Reveal>
+                <Eyebrow className="mb-5">CareBridge · OAU health centre → OAUTHC</Eyebrow>
+              </Reveal>
+
+              <Reveal delay={70}>
+                <h1 className="text-[2.75rem] leading-[1.06] sm:text-[3.5rem] lg:text-[3.75rem]">
+                  Referral continuity,
+                  <span className="headline-mute"> between campus and hospital.</span>
+                </h1>
+              </Reveal>
+
+              <Reveal delay={140}>
+                <p className="mt-6 max-w-xl text-[1.125rem] leading-relaxed text-ink-2">
+                  A student is referred from Jaja to OAUTHC and the record goes with
+                  them — every visit, vital sign and medication. No re-asking, no
+                  repeated labs, and a drug-interaction check before anything new is
+                  prescribed.
+                </p>
+              </Reveal>
+
+              <Reveal delay={210}>
+                <div className="mt-9 flex flex-wrap items-center gap-3">
+                  <ButtonLink href="/intake" size="lg" iconRight={ArrowRight}>
+                    Log an intake
+                  </ButtonLink>
+                  <ButtonLink href="/doctor" variant="secondary" size="lg">
+                    Open a referral
+                  </ButtonLink>
+                </div>
+              </Reveal>
+
+              <Reveal delay={280}>
+                <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 text-[0.8125rem] text-ink-3">
+                  <span className="flex items-center gap-2">
+                    <span className="dot dot-ok dot-live" aria-hidden />
+                    Live sandbox twin
+                  </span>
+                  <span>1.7M drug interactions via HOLON</span>
+                  <span>Consent scoped and time-boxed</span>
+                </div>
+              </Reveal>
             </div>
-            <h1 className="font-display text-5xl sm:text-6xl text-[var(--color-ink)] leading-[1.1] tracking-tight mb-6 whitespace-pre-line">
-              {'Referral continuity,\nbetween campus and hospital.'}
-            </h1>
-            <p className="text-xl text-[var(--color-ink-secondary)] leading-relaxed max-w-2xl">
-              Built on Ontomorph digital twins — every visit, medication, and vital sign travels with the patient.
-            </p>
-          </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* NURSE */}
-            <Link href="/intake" className="card p-8 group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[280px]">
-              <div>
-                <div className="font-display text-3xl text-[var(--color-ink-muted)] mb-6 opacity-50 transition-opacity group-hover:opacity-100">01</div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-ink)]">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                  </div>
-                  <h2 className="text-xl font-semibold text-[var(--color-ink)]">Log an intake</h2>
-                </div>
-                <p className="text-[var(--color-ink-secondary)] leading-relaxed">
-                  Record a visit at the OAU Health Centre — complaint, vitals, medications given.
-                </p>
-              </div>
-            </Link>
-
-            {/* DOCTOR */}
-            <Link href="/doctor" className="card p-8 group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[280px]">
-              <div>
-                <div className="font-display text-3xl text-[var(--color-ink-muted)] mb-6 opacity-50 transition-opacity group-hover:opacity-100">02</div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-ink)]">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"></path><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"></path><circle cx="20" cy="10" r="2"></circle></svg>
-                  </div>
-                  <h2 className="text-xl font-semibold text-[var(--color-ink)]">Open a referral</h2>
-                </div>
-                <p className="text-[var(--color-ink-secondary)] leading-relaxed">
-                  Paste the referral token from the Health Centre. View the patient's scoped history and check drug interactions.
-                </p>
-              </div>
-            </Link>
-
-            {/* STUDENT */}
-            <Link href="/student/5a4d0000-0000-0000-0000-000000000102" className="card p-8 group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[280px]">
-              <div>
-                <div className="font-display text-3xl text-[var(--color-ink-muted)] mb-6 opacity-50 transition-opacity group-hover:opacity-100">03</div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-ink)]">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                  </div>
-                  <h2 className="text-xl font-semibold text-[var(--color-ink)]">View your summary</h2>
-                </div>
-                <p className="text-[var(--color-ink-secondary)] leading-relaxed">
-                  See a plain-language explanation of your last visit at the Health Centre.
-                </p>
-              </div>
-            </Link>
-
-            {/* CLUSTERS */}
-            <Link href="/clusters" className="card p-8 group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[280px]">
-              <div>
-                <div className="flex items-start justify-between mb-6">
-                  <div className="font-display text-3xl text-[var(--color-ink-muted)] opacity-50 transition-opacity group-hover:opacity-100">04</div>
-                  <span className="pill pill-ok">Preview</span>
-                </div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-ink)]">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                  </div>
-                  <h2 className="text-xl font-semibold text-[var(--color-ink)]">Campus clusters</h2>
-                </div>
-                <p className="text-[var(--color-ink-secondary)] leading-relaxed">
-                  Preview — mocked outbreak data across hostels. Phase 2 feature.
-                </p>
-              </div>
-            </Link>
+            <Reveal delay={180} className="lg:pl-4">
+              <HeroVisual />
+            </Reveal>
           </div>
-        </div>
+        </section>
+
+        {/* ── How it works ─────────────────────────────────────────── */}
+        <section className="border-t border-line bg-canvas-soft">
+          <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
+            <Reveal>
+              <SectionHeading
+                eyebrow="How it works"
+                title="Recorded once."
+                muted="Carried everywhere."
+                align="center"
+              />
+            </Reveal>
+
+            <div className="mt-14 grid gap-5 md:grid-cols-3">
+              {STEPS.map((step, i) => (
+                <Reveal key={step.title} delay={i * 90}>
+                  <Card className="group h-full p-7">
+                    <div className="mb-6 flex items-start justify-between">
+                      <span className="numeral">0{i + 1}</span>
+                      <span className="flex size-9 items-center justify-center rounded-lg border border-line bg-canvas text-ink">
+                        <step.icon size={17} aria-hidden />
+                      </span>
+                    </div>
+
+                    <h3 className="text-[1.1875rem]">{step.title}</h3>
+                    <p className="mt-2.5 text-[0.9375rem] leading-relaxed text-ink-2">
+                      {step.body}
+                    </p>
+
+                    <div className="mt-6 flex flex-wrap gap-1.5">
+                      {step.tags.map((tag) => (
+                        <Pill key={tag} mono>
+                          {tag}
+                        </Pill>
+                      ))}
+                    </div>
+                  </Card>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Roles ────────────────────────────────────────────────── */}
+        <section className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
+          <Reveal>
+            <SectionHeading
+              eyebrow="Choose a view"
+              title="Four views,"
+              muted="one patient journey."
+              lead="No login for the demo — step into whichever role you want to see."
+            />
+          </Reveal>
+
+          <div className="mt-12 grid gap-5 sm:grid-cols-2">
+            {ROLES.map((role, i) => (
+              <Reveal key={role.title} delay={i * 80}>
+                <Link href={role.href} className="block h-full">
+                  <Card interactive className="group flex h-full flex-col p-7">
+                    <div className="mb-6 flex items-start justify-between">
+                      <span className="numeral">{role.n}</span>
+                      {role.preview ? <Pill tone="warn">Preview</Pill> : null}
+                    </div>
+
+                    <div className="mb-3 flex items-center gap-3">
+                      <span className="flex size-9 items-center justify-center rounded-full border border-line bg-canvas text-ink">
+                        <role.icon size={17} aria-hidden />
+                      </span>
+                      <h3 className="text-[1.1875rem]">{role.title}</h3>
+                    </div>
+
+                    <p className="text-[0.9375rem] leading-relaxed text-ink-2">{role.body}</p>
+
+                    <span className="mt-6 inline-flex items-center gap-1.5 text-[0.875rem] font-medium text-ink">
+                      Open
+                      <ArrowRight
+                        size={15}
+                        className="transition-transform duration-300 group-hover:translate-x-1"
+                        aria-hidden
+                      />
+                    </span>
+                  </Card>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Platform usage ───────────────────────────────────────── */}
+        <section className="border-t border-line bg-slate text-white">
+          <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
+            <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
+              <Reveal>
+                <Eyebrow className="mb-4 !text-white/45">Built on the platform</Eyebrow>
+                <h2 className="text-[2rem] leading-[1.12] sm:text-[2.5rem]">
+                  Twin events, consent, and clinical knowledge.
+                  <span className="text-white/45"> All genuinely used.</span>
+                </h2>
+                <p className="mt-5 max-w-lg text-[1.0625rem] leading-relaxed text-white/65">
+                  Nothing here is a mock except the Phase 2 cluster view, which is
+                  labelled as such — our sandbox account has a single twin.
+                </p>
+              </Reveal>
+
+              <Reveal delay={120}>
+                <dl className="grid gap-px overflow-hidden rounded-2xl border border-white/12 bg-white/12 sm:grid-cols-2">
+                  {[
+                    {
+                      icon: ClipboardPlus,
+                      term: "Twin events",
+                      desc: "Vitals, complaints and medications written onto the twin.",
+                    },
+                    {
+                      icon: ShieldCheck,
+                      term: "Scoped consent",
+                      desc: "Time-boxed referral tokens, scoped to body system and event type.",
+                    },
+                    {
+                      icon: FileText,
+                      term: "HOLON concepts",
+                      desc: "Free text resolved to RxNorm, SNOMED CT and LOINC concepts.",
+                    },
+                    {
+                      icon: ShieldCheck,
+                      term: "Interaction checks",
+                      desc: "The full medication list checked before prescribing.",
+                    },
+                  ].map((item) => (
+                    <div key={item.term} className="bg-slate p-6">
+                      <item.icon size={17} className="mb-3 text-white/45" aria-hidden />
+                      <dt className="font-display text-[1.0625rem] font-medium">{item.term}</dt>
+                      <dd className="mt-1.5 text-[0.9375rem] leading-relaxed text-white/60">
+                        {item.desc}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </Reveal>
+            </div>
+          </div>
+        </section>
       </main>
 
-      <footer className="py-8 text-center text-sm text-[var(--color-ink-muted)] border-t border-[var(--color-border)]">
-        Powered by Ontomorph DTP &amp; HOLON · Hackathon prototype
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

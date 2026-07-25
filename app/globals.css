@@ -1,207 +1,483 @@
 @import "tailwindcss";
 
 /*
- * Cortex / CareBridge OAU — Design Tokens
- * Inspired by the Ontomorph visual language:
- * clean, minimal, whitespace-heavy, health-professional aesthetic.
+ * CareBridge OAU — design tokens.
+ *
+ * Derived from the Ontomorph visual language: a near-monochrome, editorial
+ * "infrastructure company" system. Restrained colour, heavy whitespace, one
+ * near-black CTA, and colour reserved almost entirely for clinical status.
+ *
+ * Two deliberate notes:
+ *  - Display type is a GEOMETRIC SANS, not a serif. Ontomorph's headlines are
+ *    a tight geometric sans; an earlier pass here used Source Serif 4, which is
+ *    what made the pages read off-brand.
+ *  - The signature headline move is two-tone: the opening clause in `ink`, the
+ *    continuation in `ink-3`. See `.headline-mute`.
  */
 
 @theme {
-  /* Background */
-  --color-bg: #FBFDFE;
-  --color-surface: #FFFFFF;
-  --color-surface-alt: #F4F7F9;
+  /* ── Surfaces ─────────────────────────────────────────────────── */
+  --color-canvas: #ffffff;
+  --color-canvas-soft: #fafbfb;
+  --color-surface: #ffffff;
+  --color-raised: #f4f6f7;
 
-  /* Borders */
-  --color-border: #E2E8ED;
-  --color-border-light: #EEF2F5;
+  /* Dark surface, used for the hero panel and inverted sections */
+  --color-slate: #31383d;
+  --color-slate-deep: #23282c;
 
-  /* Text */
-  --color-ink: #1A2024;
-  --color-ink-secondary: #5A6A75;
-  --color-ink-muted: #99A8B2;
+  /* ── Lines ────────────────────────────────────────────────────── */
+  --color-line: #e6e9eb;
+  --color-line-soft: #f0f2f4;
+  --color-line-strong: #d4d9dc;
 
-  /* Accent — dark charcoal à la Ontomorph */
-  --color-accent: #283238;
-  --color-accent-hover: #364349;
+  /* ── Ink ──────────────────────────────────────────────────────── */
+  --color-ink: #17191b;
+  --color-ink-2: #565e63;
+  --color-ink-3: #8e9599;
+  --color-ink-invert: #ffffff;
 
-  /* Status */
-  --color-ok: #22C55E;
-  --color-warn: #EAB308;
-  --color-alert: #EF4444;
-  --color-info: #3B82F6;
+  /* ── Clinical status ──────────────────────────────────────────── */
+  --color-ok: #15803d;
+  --color-ok-soft: #f0fdf4;
+  --color-ok-line: #bbf7d0;
 
-  /* Radii */
-  --radius-card: 14px;
-  --radius-btn: 10px;
-  --radius-pill: 999px;
+  --color-warn: #a16207;
+  --color-warn-soft: #fefce8;
+  --color-warn-line: #fde68a;
 
-  /* Shadows */
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
-  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fef2f2;
+  --color-danger-line: #fecaca;
+
+  --color-info: #1d4ed8;
+  --color-info-soft: #eff6ff;
+  --color-info-line: #bfdbfe;
+
+  /* ── Type ─────────────────────────────────────────────────────── */
+  --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
+
+  /* ── Radii ────────────────────────────────────────────────────── */
+  --radius-card: 16px;
+  --radius-input: 10px;
+
+  /* ── Elevation — kept very soft; the system leans on borders ──── */
+  --shadow-xs: 0 1px 2px rgba(23, 25, 27, 0.04);
+  --shadow-sm: 0 1px 3px rgba(23, 25, 27, 0.05), 0 1px 2px rgba(23, 25, 27, 0.03);
+  --shadow-md: 0 8px 24px -6px rgba(23, 25, 27, 0.10), 0 2px 6px rgba(23, 25, 27, 0.04);
+  --shadow-lg: 0 20px 48px -12px rgba(23, 25, 27, 0.16), 0 4px 12px rgba(23, 25, 27, 0.05);
+
+  /* ── Motion ───────────────────────────────────────────────────── */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-fade-up: fade-up 0.62s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-in: fade-in 0.5s ease both;
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-pulse-ring: pulse-ring 2.4s ease-out infinite;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-draw: draw 2.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* ── Base reset ───────────────────────────────────────────────── */
-* {
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-9px); }
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(0.85); opacity: 0.55; }
+  70%  { transform: scale(1.7);  opacity: 0; }
+  100% { transform: scale(1.7);  opacity: 0; }
+}
+@keyframes shimmer {
+  from { background-position: -180% 0; }
+  to   { background-position: 180% 0; }
+}
+@keyframes draw {
+  from { stroke-dashoffset: var(--dash, 400); }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* ── Base ───────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
-  background: var(--color-bg);
+  background: var(--color-canvas);
   color: var(--color-ink);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
 }
 
-/* ── Utility classes ──────────────────────────────────────────── */
-.font-display {
-  font-family: var(--font-source-serif), ui-serif, Georgia, serif;
+/* Headings inherit the display face and its tight metrics. */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  letter-spacing: -0.022em;
+  line-height: 1.1;
+  margin: 0;
+  font-weight: 600;
 }
 
-/* Status dot — tiny inline indicator */
-.status-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
+::selection {
+  background: var(--color-ink);
+  color: #fff;
 }
-.status-dot-ok { background: var(--color-ok); }
-.status-dot-warn { background: var(--color-warn); }
-.status-dot-alert { background: var(--color-alert); }
-.status-dot-info { background: var(--color-info); }
 
-/* Pill / chip tag */
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  font-size: 0.75rem;
+/* Visible, on-brand focus ring — never remove the outline outright. */
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect reduced-motion: kill transforms/animation, keep opacity. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .reveal { opacity: 1 !important; transform: none !important; }
+}
+
+/* ── Typography helpers ─────────────────────────────────────────── */
+
+/* The muted continuation of a two-tone headline. */
+.headline-mute { color: var(--color-ink-3); }
+
+/* Small uppercase kicker above a headline. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 500;
-  line-height: 1.4;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-ink-secondary);
-}
-.pill-ok { border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
-.pill-warn { border-color: #fde68a; background: #fefce8; color: #854d0e; }
-.pill-alert { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
-
-/* ── Interaction alert banner ─────────────────────────────────── */
-.interaction-alert {
-  border-radius: var(--radius-card);
-  padding: 1.25rem 1.5rem;
-  border: 2px solid;
-}
-.interaction-alert-major {
-  border-color: #EF4444;
-  background: linear-gradient(135deg, #fef2f2, #fee2e2);
-}
-.interaction-alert-moderate {
-  border-color: #EAB308;
-  background: linear-gradient(135deg, #fefce8, #fef9c3);
-}
-.interaction-alert-minor {
-  border-color: #3B82F6;
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-}
-.interaction-alert-safe {
-  border-color: #22C55E;
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
 }
 
-/* ── Card ─────────────────────────────────────────────────────── */
+/* The "01 / 02 / 03" step numerals on cards. */
+.numeral {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: var(--color-ink-3);
+  opacity: 0.45;
+  transition: opacity 0.35s var(--ease-out-soft);
+  font-variant-numeric: tabular-nums;
+}
+.group:hover .numeral { opacity: 1; }
+
+/* ── Scroll reveal ──────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.7s var(--ease-out-soft),
+    transform 0.7s var(--ease-out-soft);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal[data-visible="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Cards ──────────────────────────────────────────────────────── */
 .card {
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-line);
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-xs);
 }
 
-/* ── Primary button ───────────────────────────────────────────── */
+/* Lift on hover — only for cards that are themselves links/buttons. */
+.card-interactive {
+  transition:
+    transform 0.4s var(--ease-out-soft),
+    box-shadow 0.4s var(--ease-out-soft),
+    border-color 0.4s var(--ease-out-soft);
+}
+.card-interactive:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-line-strong);
+}
+
+/* ── Buttons ────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 22px;
-  border-radius: var(--radius-btn);
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1.4;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 0.6875rem 1.375rem;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
   cursor: pointer;
-  border: none;
-  transition: all 0.15s ease;
+  text-decoration: none;
+  transition:
+    background 0.24s var(--ease-out-soft),
+    color 0.24s var(--ease-out-soft),
+    border-color 0.24s var(--ease-out-soft),
+    box-shadow 0.24s var(--ease-out-soft),
+    transform 0.24s var(--ease-out-soft);
 }
-.btn-primary {
-  background: var(--color-accent);
-  color: #fff;
-}
-.btn-primary:hover {
-  background: var(--color-accent-hover);
-  box-shadow: var(--shadow-card-hover);
-}
-.btn-primary:disabled {
-  opacity: 0.5;
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.45;
   cursor: not-allowed;
-}
-.btn-ghost {
-  background: transparent;
-  color: var(--color-ink);
-  border: 1px solid var(--color-border);
-}
-.btn-ghost:hover {
-  background: var(--color-surface-alt);
+  transform: none !important;
+  box-shadow: none !important;
 }
 
-/* ── Form inputs ──────────────────────────────────────────────── */
+.btn-primary {
+  background: var(--color-ink);
+  color: #fff;
+}
+.btn-primary:not(:disabled):hover {
+  background: #000;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-color: var(--color-line-strong);
+}
+.btn-secondary:not(:disabled):hover {
+  background: var(--color-raised);
+  border-color: var(--color-ink-3);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-ink-2);
+  padding-inline: 0.875rem;
+}
+.btn-ghost:not(:disabled):hover {
+  background: var(--color-raised);
+  color: var(--color-ink);
+}
+
+.btn-danger {
+  background: #b91c1c;
+  color: #fff;
+}
+.btn-danger:not(:disabled):hover {
+  background: #991b1b;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.btn-sm { padding: 0.4375rem 0.9375rem; font-size: 0.875rem; }
+.btn-lg { padding: 0.8125rem 1.75rem; font-size: 1rem; }
+
+/* Spinner used inside a pending button. */
+.btn-spinner {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: spin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Pills / chips ──────────────────────────────────────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink-2);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+/* Technical labels (codes, vocabularies) read better monospaced. */
+.pill-mono { font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.01em; }
+
+.pill-ok     { background: var(--color-ok-soft);     border-color: var(--color-ok-line);     color: var(--color-ok); }
+.pill-warn   { background: var(--color-warn-soft);   border-color: var(--color-warn-line);   color: var(--color-warn); }
+.pill-danger { background: var(--color-danger-soft); border-color: var(--color-danger-line); color: var(--color-danger); }
+.pill-info   { background: var(--color-info-soft);   border-color: var(--color-info-line);   color: var(--color-info); }
+.pill-solid  { background: var(--color-ink); border-color: var(--color-ink); color: #fff; }
+
+/* ── Status dot, with an optional live pulse ────────────────────── */
+.dot {
+  position: relative;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-ok     { background: #22c55e; }
+.dot-warn   { background: #eab308; }
+.dot-danger { background: #ef4444; }
+.dot-info   { background: #3b82f6; }
+.dot-idle   { background: var(--color-ink-3); }
+
+.dot-live::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: var(--animate-pulse-ring);
+}
+
+/* ── Forms ──────────────────────────────────────────────────────── */
+.field-label {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-ink-2);
+  margin-bottom: 0.4375rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .input {
   display: block;
   width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-btn);
-  font-size: 0.9rem;
-  font-family: inherit;
-  color: var(--color-ink);
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-input);
   background: var(--color-surface);
-  transition: border-color 0.15s ease;
+  color: var(--color-ink);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.5;
   outline: none;
+  transition:
+    border-color 0.2s var(--ease-out-soft),
+    box-shadow 0.2s var(--ease-out-soft);
 }
+.input:hover:not(:focus) { border-color: var(--color-ink-3); }
 .input:focus {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(40,50,56,0.08);
+  border-color: var(--color-ink);
+  box-shadow: 0 0 0 3px rgba(23, 25, 27, 0.07);
 }
-.input::placeholder {
-  color: var(--color-ink-muted);
+.input::placeholder { color: var(--color-ink-3); }
+.input:disabled { background: var(--color-raised); cursor: not-allowed; }
+
+.input-invalid,
+.input[aria-invalid="true"] {
+  border-color: #ef4444;
+}
+.input-invalid:focus,
+.input[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
 }
 
-textarea.input {
-  resize: vertical;
-  min-height: 80px;
-}
+textarea.input { resize: vertical; min-height: 96px; line-height: 1.6; }
 
 select.input {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7A85' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  padding-right: 2.25rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E9599' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 36px;
+  background-position: right 0.75rem center;
 }
 
-label {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-ink-secondary);
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+/* ── Severity banner (drug interactions) ────────────────────────── */
+.alert {
+  border-radius: var(--radius-card);
+  border: 1px solid;
+  padding: 1.25rem 1.375rem;
 }
+.alert-major {
+  border-color: var(--color-danger-line);
+  background: var(--color-danger-soft);
+  color: #7f1d1d;
+  /* A weighted left edge so severity reads before the text does. */
+  box-shadow: inset 4px 0 0 #dc2626;
+}
+.alert-moderate {
+  border-color: var(--color-warn-line);
+  background: var(--color-warn-soft);
+  color: #713f12;
+  box-shadow: inset 4px 0 0 #d97706;
+}
+.alert-minor {
+  border-color: var(--color-info-line);
+  background: var(--color-info-soft);
+  color: #1e3a8a;
+  box-shadow: inset 4px 0 0 #2563eb;
+}
+.alert-clear {
+  border-color: var(--color-ok-line);
+  background: var(--color-ok-soft);
+  color: #14532d;
+  box-shadow: inset 4px 0 0 #16a34a;
+}
+.alert-neutral {
+  border-color: var(--color-line);
+  background: var(--color-raised);
+  color: var(--color-ink-2);
+  box-shadow: inset 4px 0 0 var(--color-ink-3);
+}
+
+/* ── Skeleton loading ───────────────────────────────────────────── */
+.skeleton {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--color-raised) 25%,
+    #eceff1 37%,
+    var(--color-raised) 63%
+  );
+  background-size: 300% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* ── Hairline divider with generous rhythm ──────────────────────── */
+.rule {
+  height: 1px;
+  background: var(--color-line);
+  border: 0;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line-strong);
+  border-radius: 999px;
+  border: 3px solid var(--color-canvas);
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--color-ink-3); }

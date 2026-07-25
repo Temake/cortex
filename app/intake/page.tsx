@@ -1,293 +1,356 @@
-'use client';
+/**
+ * /intake — the nurse logs a visit at the Health Centre.
+ *
+ * Posts to /api/intake, which writes the complaint, the vitals and one event per
+ * medication onto the sandbox twin, then routes to the referral step.
+ *
+ * The side panel mirrors exactly what will be written to the twin. During the
+ * demo that makes the platform's data model visible instead of hiding it behind
+ * a form, and it doubles as a pre-submit check for the nurse.
+ */
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import {
+  Activity,
+  ArrowRight,
+  ClipboardPlus,
+  MapPin,
+  Plus,
+  Stethoscope,
+  X,
+} from "lucide-react";
 
-export default function NurseIntakePage() {
-  const [complaint, setComplaint] = useState('');
-  const [vitals, setVitals] = useState({ temp: '', bp: '', hr: '', rr: '', spo2: '' });
-  const [medsGiven, setMedsGiven] = useState('');
-  const [hostel, setHostel] = useState('');
+import { CareBridgeMark, PageShell } from "@/components/site-nav";
+import { Button, Card, ErrorNote, Eyebrow, Field, Pill, Reveal, cx } from "@/components/ui";
+import { ApiClientError, postJson, type IntakeResponse } from "@/lib/contracts";
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successData, setSuccessData] = useState<any>(null);
+/** OAU halls of residence, including the ones the mock cluster data uses. */
+const HOSTELS = [
+  "Angola",
+  "Awo",
+  "Mozambique",
+  "Alumni",
+  "Fajuyi",
+  "Ladoke Akintola",
+  "Moremi",
+  "ETF / Postgraduate",
+  "Off campus",
+];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+const COMMON_COMPLAINTS = [
+  "Fever and headache for 3 days",
+  "Abdominal pain and vomiting",
+  "Cough and sore throat",
+  "Diarrhoea since yesterday",
+];
+
+const VITAL_FIELDS = [
+  { key: "temp", label: "Temperature (°C)", placeholder: "38.9", mode: "decimal" as const },
+  { key: "bp", label: "Blood pressure", placeholder: "118/76", mode: "text" as const },
+  { key: "hr", label: "Heart rate (bpm)", placeholder: "96", mode: "numeric" as const },
+  { key: "rr", label: "Resp. rate (/min)", placeholder: "18", mode: "numeric" as const },
+  { key: "spo2", label: "SpO₂ (%)", placeholder: "98", mode: "numeric" as const },
+] satisfies Array<{ key: string; label: string; placeholder: string; mode: "decimal" | "numeric" | "text" }>;
+
+type VitalKey = (typeof VITAL_FIELDS)[number]["key"];
+
+export default function IntakePage() {
+  const router = useRouter();
+
+  const [complaint, setComplaint] = useState("");
+  const [vitals, setVitals] = useState<Record<VitalKey, string>>({
+    temp: "",
+    bp: "",
+    hr: "",
+    rr: "",
+    spo2: "",
+  });
+  const [hostel, setHostel] = useState("");
+  const [meds, setMeds] = useState<string[]>([]);
+  const [medDraft, setMedDraft] = useState("");
+
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<{ code: string; message: string } | null>(null);
+  const [touched, setTouched] = useState(false);
+
+  const complaintError = touched && !complaint.trim() ? "A presenting complaint is required." : null;
+
+  function addMed() {
+    const value = medDraft.trim();
+    if (!value) return;
+    // Keep the list unique — a duplicate medication is almost always a slip.
+    setMeds((current) => (current.includes(value) ? current : [...current, value]));
+    setMedDraft("");
+  }
+
+  /** Mirrors the events /api/intake will create, for the side panel. */
+  const preview = useMemo(() => {
+    const rows: Array<{ system: string; type: string; value: string }> = [];
+
+    if (complaint.trim()) {
+      rows.push({ system: "general", type: "diagnosis", value: complaint.trim() });
+    }
+
+    const bits = [
+      vitals.temp && `Temp ${vitals.temp}°C`,
+      vitals.bp && `BP ${vitals.bp}`,
+      vitals.hr && `HR ${vitals.hr} bpm`,
+      vitals.rr && `RR ${vitals.rr}/min`,
+      vitals.spo2 && `SpO₂ ${vitals.spo2}%`,
+    ].filter(Boolean);
+
+    if (bits.length) {
+      rows.push({ system: "cardiovascular", type: "vital_sign", value: bits.join(" · ") });
+    }
+
+    for (const med of meds) {
+      rows.push({ system: "medication", type: "medication", value: med });
+    }
+
+    return rows;
+  }, [complaint, vitals, meds]);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setTouched(true);
+    if (!complaint.trim()) return;
+
+    setPending(true);
     setError(null);
-
-    const meds = medsGiven.split('\n').map(m => m.trim()).filter(Boolean);
-    const vitalsPayload: any = {};
-    if (vitals.temp) vitalsPayload.temp = Number(vitals.temp);
-    if (vitals.bp) vitalsPayload.bp = vitals.bp;
-    if (vitals.hr) vitalsPayload.hr = Number(vitals.hr);
-    if (vitals.rr) vitalsPayload.rr = Number(vitals.rr);
-    if (vitals.spo2) vitalsPayload.spo2 = Number(vitals.spo2);
 
     try {
-      const res = await fetch('/api/intake', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          complaint,
-          vitals: vitalsPayload,
-          medsGiven: meds,
-          ...(hostel ? { hostel } : {})
-        })
+      const result = await postJson<IntakeResponse>("/api/intake", {
+        complaint: complaint.trim(),
+        // Send only the vitals that were actually filled in.
+        vitals: Object.fromEntries(Object.entries(vitals).filter(([, v]) => v !== "")),
+        medsGiven: meds,
+        hostel: hostel || null,
       });
-
-      const data = await res.json();
-      if (!data.ok) {
-        setError(data.error?.message || 'Failed to record intake');
-      } else {
-        setSuccessData(data);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Network error');
-    } finally {
-      setIsLoading(false);
+      router.push(`/intake/${result.visitId}/refer`);
+    } catch (err) {
+      setError(
+        err instanceof ApiClientError
+          ? { code: err.code, message: err.message }
+          : { code: "UNKNOWN", message: "Something went wrong logging this visit." },
+      );
+      setPending(false);
     }
-  };
-
-  const resetForm = () => {
-    setComplaint('');
-    setVitals({ temp: '', bp: '', hr: '', rr: '', spo2: '' });
-    setMedsGiven('');
-    setHostel('');
-    setSuccessData(null);
-    setError(null);
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-        <div className="flex items-center gap-2">
-          <Link href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight text-[var(--color-ink)] hover:opacity-80">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="16.8" cy="7.2" r="3.5" fill="currentColor"/>
-              <circle cx="16.8" cy="16.7" r="3.5" fill="currentColor"/>
-              <circle cx="7.3" cy="7.2" r="3.5" fill="currentColor"/>
-              <circle cx="7.3" cy="16.7" r="3.5" fill="currentColor"/>
-              <circle cx="2.7" cy="10.4" r="1.2" fill="currentColor"/>
-              <circle cx="21.3" cy="10.4" r="1.2" fill="currentColor"/>
-              <circle cx="2.7" cy="13.7" r="1.2" fill="currentColor"/>
-              <circle cx="21.3" cy="13.7" r="1.2" fill="currentColor"/>
-              <circle cx="13.6" cy="2.7" r="1.2" fill="currentColor"/>
-              <circle cx="10.3" cy="2.7" r="1.2" fill="currentColor"/>
-              <circle cx="13.6" cy="21.4" r="1.2" fill="currentColor"/>
-              <circle cx="10.3" cy="21.4" r="1.2" fill="currentColor"/>
-            </svg>
-            Cortex
-          </Link>
-          <span className="text-[var(--color-ink-muted)]">/</span>
-          <span className="text-[var(--color-ink-secondary)]">Nurse Intake</span>
-        </div>
-      </nav>
+    <PageShell>
+      <Reveal>
+        <Eyebrow className="mb-3.5">Nurse · Jaja Health Centre</Eyebrow>
+        <h1 className="text-[2.25rem] leading-[1.1] sm:text-[2.75rem]">
+          Log a visit,
+          <span className="headline-mute"> onto the twin.</span>
+        </h1>
+        <p className="mt-4 max-w-xl text-[1.0625rem] leading-relaxed text-ink-2">
+          Everything recorded here becomes a health event on the student&apos;s digital
+          twin, and travels with them on referral.
+        </p>
+      </Reveal>
 
-      <main className="flex-1 p-6 md:p-8 max-w-3xl mx-auto w-full">
-        <header className="mb-8">
-          <h1 className="font-display text-3xl font-bold text-[var(--color-ink)] mb-2">Log a visit</h1>
-          <p className="text-[var(--color-ink-secondary)]">
-            Record the patient's presenting complaint, vital signs, and any medications given at the OAU Health Centre.
-          </p>
-        </header>
+      <div className="mt-12 grid gap-6 lg:grid-cols-[1.35fr_1fr] lg:gap-8">
+        {/* ── Form ───────────────────────────────────────────────────── */}
+        <Reveal delay={80}>
+          <form onSubmit={submit} noValidate className="space-y-6">
+            {error ? <ErrorNote code={error.code} message={error.message} /> : null}
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
-            {error}
-          </div>
-        )}
+            <Card className="p-6 sm:p-7">
+              <h2 className="mb-5 flex items-center gap-2.5 text-[1.125rem]">
+                <Stethoscope size={17} className="text-ink-3" aria-hidden />
+                Presenting complaint
+              </h2>
 
-        <div className="card space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block mb-1 text-sm font-medium text-[var(--color-ink)]" htmlFor="complaint">COMPLAINT <span className="text-red-500">*</span></label>
-              <textarea
-                id="complaint"
-                required
-                className="input w-full min-h-[100px]"
-                placeholder="e.g. Fever and headache for 3 days"
-                value={complaint}
-                onChange={e => setComplaint(e.target.value)}
-                disabled={!!successData || isLoading}
-              />
-            </div>
+              <Field
+                label="What has the student come in with?"
+                htmlFor="complaint"
+                error={complaintError}
+              >
+                <textarea
+                  id="complaint"
+                  className={cx("input", complaintError && "input-invalid")}
+                  placeholder="Fever and headache for 3 days…"
+                  value={complaint}
+                  aria-invalid={complaintError ? true : undefined}
+                  onChange={(e) => setComplaint(e.target.value)}
+                  onBlur={() => setTouched(true)}
+                />
+              </Field>
 
-            <div>
-              <h3 className="block mb-3 text-sm font-medium text-[var(--color-ink)]">VITALS</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block mb-1 text-xs text-[var(--color-ink-secondary)]" htmlFor="temp">Temperature (°C)</label>
-                  <input
-                    id="temp"
-                    type="number"
-                    step="0.1"
-                    className="input w-full"
-                    placeholder="37.0"
-                    value={vitals.temp}
-                    onChange={e => setVitals({...vitals, temp: e.target.value})}
-                    disabled={!!successData || isLoading}
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1 text-xs text-[var(--color-ink-secondary)]" htmlFor="bp">Blood Pressure</label>
-                  <input
-                    id="bp"
-                    type="text"
-                    className="input w-full"
-                    placeholder="120/80"
-                    value={vitals.bp}
-                    onChange={e => setVitals({...vitals, bp: e.target.value})}
-                    disabled={!!successData || isLoading}
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1 text-xs text-[var(--color-ink-secondary)]" htmlFor="hr">Heart Rate (bpm)</label>
-                  <input
-                    id="hr"
-                    type="number"
-                    className="input w-full"
-                    placeholder="72"
-                    value={vitals.hr}
-                    onChange={e => setVitals({...vitals, hr: e.target.value})}
-                    disabled={!!successData || isLoading}
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1 text-xs text-[var(--color-ink-secondary)]" htmlFor="rr">Resp. Rate (/min)</label>
-                  <input
-                    id="rr"
-                    type="number"
-                    className="input w-full"
-                    placeholder="16"
-                    value={vitals.rr}
-                    onChange={e => setVitals({...vitals, rr: e.target.value})}
-                    disabled={!!successData || isLoading}
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1 text-xs text-[var(--color-ink-secondary)]" htmlFor="spo2">SpO₂ (%)</label>
-                  <input
-                    id="spo2"
-                    type="number"
-                    className="input w-full"
-                    placeholder="98"
-                    value={vitals.spo2}
-                    onChange={e => setVitals({...vitals, spo2: e.target.value})}
-                    disabled={!!successData || isLoading}
-                  />
-                </div>
+              <div className="mt-3.5 flex flex-wrap gap-1.5">
+                {COMMON_COMPLAINTS.map((text) => (
+                  <button
+                    key={text}
+                    type="button"
+                    onClick={() => setComplaint(text)}
+                    className="pill transition-colors hover:border-ink-3 hover:text-ink"
+                  >
+                    {text}
+                  </button>
+                ))}
               </div>
-            </div>
+            </Card>
 
-            <div>
-              <label className="block mb-1 text-sm font-medium text-[var(--color-ink)]" htmlFor="meds">MEDICATIONS GIVEN</label>
-              <textarea
-                id="meds"
-                className="input w-full min-h-[80px]"
-                placeholder={`One per line, e.g.\nParacetamol 1g\nAmoxicillin 500mg`}
-                value={medsGiven}
-                onChange={e => setMedsGiven(e.target.value)}
-                disabled={!!successData || isLoading}
-              />
-            </div>
+            <Card className="p-6 sm:p-7">
+              <h2 className="mb-5 flex items-center gap-2.5 text-[1.125rem]">
+                <Activity size={17} className="text-ink-3" aria-hidden />
+                Vitals
+              </h2>
 
-            <div>
-              <label className="block mb-1 text-sm font-medium text-[var(--color-ink)]" htmlFor="hostel">HOSTEL</label>
-              <select
-                id="hostel"
-                className="input w-full"
-                value={hostel}
-                onChange={e => setHostel(e.target.value)}
-                disabled={!!successData || isLoading}
+              <div className="grid gap-4 sm:grid-cols-3">
+                {VITAL_FIELDS.map((field) => (
+                  <Field key={field.key} label={field.label} htmlFor={field.key}>
+                    <input
+                      id={field.key}
+                      className="input"
+                      inputMode={field.mode === "text" ? undefined : field.mode}
+                      placeholder={field.placeholder}
+                      value={vitals[field.key]}
+                      onChange={(e) =>
+                        setVitals((current) => ({ ...current, [field.key]: e.target.value }))
+                      }
+                    />
+                  </Field>
+                ))}
+              </div>
+            </Card>
+
+            <Card className="p-6 sm:p-7">
+              <h2 className="mb-5 flex items-center gap-2.5 text-[1.125rem]">
+                <ClipboardPlus size={17} className="text-ink-3" aria-hidden />
+                Medications given
+              </h2>
+
+              <Field
+                label="Add a medication"
+                htmlFor="med"
+                hint="One at a time. Each becomes its own event, resolved to a drug concept."
               >
-                <option value=""></option>
-                <option value="Angola">Angola</option>
-                <option value="Awo">Awo</option>
-                <option value="Mozambique">Mozambique</option>
-                <option value="Alumni">Alumni</option>
-                <option value="Off-campus">Off-campus</option>
-              </select>
-            </div>
+                <div className="flex gap-2">
+                  <input
+                    id="med"
+                    className="input"
+                    placeholder="Paracetamol 1g"
+                    value={medDraft}
+                    onChange={(e) => setMedDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        // Enter adds a chip; it must not submit the whole visit.
+                        e.preventDefault();
+                        addMed();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={addMed}
+                    disabled={!medDraft.trim()}
+                    icon={Plus}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </Field>
 
-            {!successData && (
-              <button
-                type="submit"
-                className="btn btn-primary w-full py-3 flex items-center justify-center"
-                disabled={isLoading}
+              {meds.length ? (
+                <ul className="mt-4 flex list-none flex-wrap gap-2 p-0">
+                  {meds.map((med) => (
+                    <li key={med}>
+                      <span className="pill pill-info gap-1.5 py-1 pl-2.5 pr-1.5">
+                        {med}
+                        <button
+                          type="button"
+                          onClick={() => setMeds((c) => c.filter((m) => m !== med))}
+                          aria-label={`Remove ${med}`}
+                          className="flex size-4 items-center justify-center rounded-full transition-colors hover:bg-black/10"
+                        >
+                          <X size={11} aria-hidden />
+                        </button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </Card>
+
+            <Card className="p-6 sm:p-7">
+              <h2 className="mb-5 flex items-center gap-2.5 text-[1.125rem]">
+                <MapPin size={17} className="text-ink-3" aria-hidden />
+                Location
+              </h2>
+
+              <Field
+                label="Hall of residence"
+                htmlFor="hostel"
+                hint="Tagged on every event — this is what the Phase 2 cluster view aggregates on."
               >
-                {isLoading ? 'Recording...' : 'Record intake'}
-              </button>
-            )}
+                <select
+                  id="hostel"
+                  className="input"
+                  value={hostel}
+                  onChange={(e) => setHostel(e.target.value)}
+                >
+                  <option value="">Not recorded</option>
+                  {HOSTELS.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </Card>
+
+            <div className="flex flex-wrap items-center gap-4">
+              <Button type="submit" size="lg" pending={pending} iconRight={ArrowRight}>
+                {pending ? "Writing to the twin…" : "Log visit and continue"}
+              </Button>
+              <p className="text-[0.8125rem] text-ink-3">
+                {preview.length} event{preview.length === 1 ? "" : "s"} will be created
+              </p>
+            </div>
           </form>
-        </div>
+        </Reveal>
 
-        {successData && (
-          <div className="mt-8 card bg-[#F0FDF4] border-[#BBF7D0]">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                </svg>
+        {/* ── Live preview of what gets written ──────────────────────── */}
+        <Reveal delay={160}>
+          <div className="lg:sticky lg:top-24">
+            <Card className="overflow-hidden">
+              <div className="flex items-center gap-2.5 border-b border-line bg-canvas-soft px-5 py-4">
+                <CareBridgeMark size={16} />
+                <p className="text-[0.9375rem] font-medium">Twin events preview</p>
               </div>
-              <h2 className="text-xl font-semibold text-green-900">Visit recorded</h2>
-            </div>
-            
-            <div className="grid gap-2 text-sm text-[var(--color-ink-secondary)] mb-6">
-              <div className="flex gap-2">
-                <span className="font-medium text-[var(--color-ink)]">Visit ID:</span> {successData.visitId}
-              </div>
-              <div className="flex gap-2">
-                <span className="font-medium text-[var(--color-ink)]">Twin ID:</span> {successData.twinId}
-              </div>
-              <div className="flex gap-2">
-                <span className="font-medium text-[var(--color-ink)]">Events logged:</span> {successData.eventCount}
-              </div>
-              
-              {successData.knowledgeSource && (
-                <div className="mt-2">
-                  <span className="pill pill-ok">Source: {successData.knowledgeSource}</span>
-                </div>
+
+              {preview.length ? (
+                <ul className="list-none divide-y divide-line-soft p-0">
+                  {preview.map((row, i) => (
+                    <li key={`${row.type}-${i}`} className="px-5 py-4">
+                      <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                        <Pill mono>{row.type}</Pill>
+                        <Pill>{row.system}</Pill>
+                      </div>
+                      <p className="text-[0.9375rem] leading-relaxed text-ink">{row.value}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="px-5 py-10 text-center text-[0.9375rem] text-ink-3">
+                  Fill the form and the events will appear here.
+                </p>
               )}
-            </div>
+            </Card>
 
-            {successData.events && successData.events.length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-xs font-semibold text-[var(--color-ink-muted)] uppercase tracking-wider mb-2">Events</h4>
-                <div className="bg-white border border-[var(--color-border)] rounded-md overflow-hidden">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-[#FBFDFE] border-b border-[var(--color-border)]">
-                      <tr>
-                        <th className="px-4 py-2 text-xs text-[var(--color-ink-secondary)] font-medium">Code</th>
-                        <th className="px-4 py-2 text-xs text-[var(--color-ink-secondary)] font-medium">Value</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--color-border)]">
-                      {successData.events.map((ev: any, i: number) => (
-                        <tr key={i}>
-                          <td className="px-4 py-2 font-mono text-xs text-[var(--color-ink)]">{ev.code}</td>
-                          <td className="px-4 py-2 text-[var(--color-ink)]">{ev.value}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row gap-4 mt-8">
-              <Link href={`/intake/${successData.visitId}/refer`} className="btn btn-primary justify-center">
-                Refer to OAUTHC &rarr;
-              </Link>
-              <button onClick={resetForm} type="button" className="btn btn-ghost justify-center">
-                Log another visit
-              </button>
-            </div>
+            <p className="mt-4 px-1 text-[0.8125rem] leading-relaxed text-ink-3">
+              Written to the sandbox twin through the grant-authed provider events
+              endpoint. Nothing is sent until you submit.
+            </p>
           </div>
-        )}
-      </main>
-    </div>
+        </Reveal>
+      </div>
+    </PageShell>
   );
 }

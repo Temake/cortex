@@ -1,264 +1,215 @@
-'use client';
+/**
+ * /doctor/[grantId]/prescribe — check a new drug before prescribing it.
+ *
+ * Posts to /api/interactions/check, which resolves the drug through HOLON
+ * concepts, pulls the twin's existing medications, and runs the whole list
+ * through the interaction check.
+ *
+ * The token travels in `?token=` from the history page. Without it there is
+ * nothing to check against, so the page says so rather than failing on submit.
+ */
+"use client";
 
-import { useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { ArrowLeft, Pill as PillIcon, Search, Stethoscope } from "lucide-react";
 
-function PrescribeContent() {
+import { ExistingInteractions, InteractionAlert } from "@/components/interaction-alert";
+import { MedicationList } from "@/components/care-events";
+import { PageShell } from "@/components/site-nav";
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorNote,
+  Eyebrow,
+  Field,
+  Pill,
+  Reveal,
+  Skeleton,
+} from "@/components/ui";
+import {
+  ApiClientError,
+  postJson,
+  type InteractionCheckResponse,
+} from "@/lib/contracts";
+
+/** Quick picks for the live demo — the first one is the deliberate collision. */
+const SUGGESTIONS = ["Ibuprofen", "Paracetamol", "Metronidazole", "Ciprofloxacin", "Amoxicillin"];
+
+function PrescribeForm() {
   const searchParams = useSearchParams();
-  const token = searchParams.get('token');
+  const token = searchParams.get("token");
 
-  const [drugName, setDrugName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState('');
+  const [drug, setDrug] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<{ code: string; message: string } | null>(null);
+  const [result, setResult] = useState<InteractionCheckResponse | null>(null);
 
-  const checkInteraction = async () => {
-    if (!token) return;
-    if (!drugName.trim()) return;
+  async function check(value: string) {
+    const name = value.trim();
+    if (!name || !token) return;
 
-    setLoading(true);
-    setError('');
-    
+    setPending(true);
+    setError(null);
     try {
-      const res = await fetch('/api/interactions/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ grantToken: token, newDrug: drugName.trim() })
-      });
-      const data = await res.json();
-      
-      if (!data.ok) {
-        throw new Error(data.error?.message || 'Failed to check interaction');
-      }
-      
-      setResult(data);
-    } catch (err: any) {
-      setError(err.message);
+      setResult(
+        await postJson<InteractionCheckResponse>("/api/interactions/check", {
+          grantToken: token,
+          newDrug: name,
+        }),
+      );
+    } catch (err) {
+      setError(
+        err instanceof ApiClientError
+          ? { code: err.code, message: err.message }
+          : { code: "UNKNOWN", message: "Could not run the interaction check." },
+      );
     } finally {
-      setLoading(false);
+      setPending(false);
     }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      checkInteraction();
-    }
-  };
+  }
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
-        <div className="flex-1 p-6 max-w-4xl mx-auto w-full">
-          <div className="card text-center text-[var(--color-ink-muted)]">
-            Error: No access token provided. Please return to the patient page.
-          </div>
+      <Card>
+        <EmptyState icon={Stethoscope} title="No referral open">
+          Open a referral first — the interaction check needs the patient&apos;s
+          medication list to check against.
+        </EmptyState>
+        <div className="flex justify-center pb-8">
+          <Link href="/doctor" className="btn btn-primary">
+            <ArrowLeft size={16} aria-hidden />
+            Open a referral
+          </Link>
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-        <a href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight text-[var(--color-ink)]">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="16.8" cy="7.2" r="3.5" fill="currentColor"/>
-            <circle cx="16.8" cy="16.7" r="3.5" fill="currentColor"/>
-            <circle cx="7.3" cy="7.2" r="3.5" fill="currentColor"/>
-            <circle cx="7.3" cy="16.7" r="3.5" fill="currentColor"/>
-            <circle cx="2.7" cy="10.4" r="1.2" fill="currentColor"/>
-            <circle cx="21.3" cy="10.4" r="1.2" fill="currentColor"/>
-            <circle cx="2.7" cy="13.7" r="1.2" fill="currentColor"/>
-            <circle cx="21.3" cy="13.7" r="1.2" fill="currentColor"/>
-            <circle cx="13.6" cy="2.7" r="1.2" fill="currentColor"/>
-            <circle cx="10.3" cy="2.7" r="1.2" fill="currentColor"/>
-            <circle cx="13.6" cy="21.4" r="1.2" fill="currentColor"/>
-            <circle cx="10.3" cy="21.4" r="1.2" fill="currentColor"/>
-          </svg>
-          Cortex
-        </a>
-        <div className="text-sm font-medium text-[var(--color-ink-secondary)]">
-          Check prescription
-        </div>
-      </nav>
+    <>
+      <Reveal>
+        <Link
+          href={`/doctor?token=${encodeURIComponent(token)}`}
+          className="mb-6 inline-flex items-center gap-1.5 text-[0.875rem] text-ink-2 transition-colors hover:text-ink"
+        >
+          <ArrowLeft size={14} aria-hidden />
+          Back to history
+        </Link>
 
-      <main className="flex-1 p-6 max-w-4xl mx-auto w-full flex flex-col gap-8">
-        <div>
-          <h1 className="text-3xl font-display font-semibold mb-2 text-[var(--color-ink)]">Check a prescription</h1>
-          <p className="text-[var(--color-ink-secondary)]">Enter the drug you are considering prescribing. Cortex will check it against the patient's existing medications.</p>
-        </div>
+        <Eyebrow className="mb-3.5">Doctor · prescribing check</Eyebrow>
+        <h1 className="text-[2.25rem] leading-[1.1] sm:text-[2.75rem]">
+          Before you prescribe,
+          <span className="headline-mute"> check the list.</span>
+        </h1>
+        <p className="mt-4 max-w-xl text-[1.0625rem] leading-relaxed text-ink-2">
+          The new drug is resolved to a clinical concept, then checked against
+          every medication already on this patient&apos;s twin.
+        </p>
+      </Reveal>
 
-        {!result ? (
-          <div className="card flex flex-col gap-4">
-            <label className="text-sm font-medium text-[var(--color-ink-secondary)] tracking-wide">NEW DRUG NAME</label>
-            <div className="flex gap-4">
-              <input 
-                type="text" 
-                className="input flex-1" 
-                placeholder="e.g. Ibuprofen" 
-                value={drugName}
-                onChange={(e) => setDrugName(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={loading}
-              />
-              <button 
-                className="btn btn-primary min-w-[150px]" 
-                onClick={checkInteraction}
-                disabled={loading || !drugName.trim()}
+      <Reveal delay={80}>
+        <Card className="mt-10 p-6 sm:p-7">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void check(drug);
+            }}
+          >
+            <Field
+              label="New medication"
+              htmlFor="drug"
+              hint="Generic or brand name. Dose is fine to include."
+            >
+              <div className="flex gap-2">
+                <input
+                  id="drug"
+                  className="input"
+                  placeholder="Ibuprofen 400mg"
+                  value={drug}
+                  onChange={(e) => setDrug(e.target.value)}
+                  autoComplete="off"
+                />
+                <Button type="submit" pending={pending} disabled={!drug.trim()} icon={Search}>
+                  Check
+                </Button>
+              </div>
+            </Field>
+          </form>
+
+          <div className="mt-4 flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-[0.8125rem] text-ink-3">Try:</span>
+            {SUGGESTIONS.map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => {
+                  setDrug(name);
+                  void check(name);
+                }}
+                className="pill transition-colors hover:border-ink-3 hover:text-ink"
               >
-                {loading ? 'Checking...' : 'Check interactions'}
+                {name}
               </button>
-            </div>
-            {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
+            ))}
           </div>
-        ) : (
-          <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* The dramatic alert */}
-            {(() => {
-              if (result.resolvedNewDrug === false) {
-                return (
-                  <div className="interaction-alert bg-yellow-50 border border-yellow-200 p-6 rounded-lg text-yellow-900 shadow-sm">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="text-2xl">❓</span>
-                      <h2 className="text-xl font-semibold">Drug not recognized</h2>
-                    </div>
-                    <p>{result.description}</p>
-                  </div>
-                );
-              }
-              
-              if (result.hasInteraction === false) {
-                return (
-                  <div className="interaction-alert interaction-alert-safe bg-green-50 border border-green-200 p-6 rounded-lg text-green-900 shadow-sm flex items-start gap-4">
-                    <span className="text-3xl">✅</span>
-                    <div>
-                      <h2 className="text-2xl font-bold mb-1">No interaction detected</h2>
-                      <p className="text-lg">{result.description}</p>
-                    </div>
-                  </div>
-                );
-              }
+        </Card>
+      </Reveal>
 
-              // hasInteraction === true
-              const isMajor = result.severity === 'MAJOR' || result.severity === 'HIGH';
-              const alertClass = isMajor 
-                ? 'interaction-alert interaction-alert-major bg-gradient-to-r from-red-50 to-red-100 border-2 border-red-500 shadow-xl'
-                : 'interaction-alert interaction-alert-moderate bg-yellow-50 border-2 border-yellow-400 shadow-md';
-                
-              const icon = isMajor ? '❌' : '⚠️';
-              const badgeClass = isMajor ? 'bg-red-600 text-white' : 'bg-yellow-500 text-yellow-950';
-              
-              const pulseAnimation = isMajor ? 'animate-pulse' : '';
-              
-              return (
-                <div className={`${alertClass} p-8 rounded-xl relative overflow-hidden`}>
-                  {isMajor && <div className="absolute inset-0 border-4 border-red-500 opacity-50 animate-ping rounded-xl pointer-events-none" style={{ animationDuration: '3s' }}></div>}
-                  
-                  <div className="relative z-10 flex flex-col gap-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-4">
-                        <span className="text-5xl">{icon}</span>
-                        <div className={`px-4 py-1 rounded-full text-sm font-bold tracking-wider uppercase ${badgeClass} ${pulseAnimation}`}>
-                          {result.severity} INTERACTION
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h2 className="text-3xl font-display font-bold text-gray-900 mb-2">
-                        {result.interaction?.conceptName || result.newDrug?.conceptName} + {result.existingMeds?.[0]?.conceptName || 'Existing Medication'}
-                      </h2>
-                      <p className="text-xl text-gray-800 leading-relaxed">{result.description}</p>
-                    </div>
-                    
-                    {result.interaction && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 text-gray-800">
-                        {result.interaction.mechanism && (
-                          <div className="bg-white/60 p-4 rounded-lg">
-                            <h3 className="text-sm font-bold uppercase text-gray-500 mb-1">Mechanism</h3>
-                            <p>{result.interaction.mechanism}</p>
-                          </div>
-                        )}
-                        {result.interaction.clinicalEffect && (
-                          <div className="bg-white/60 p-4 rounded-lg">
-                            <h3 className="text-sm font-bold uppercase text-gray-500 mb-1">Clinical Effect</h3>
-                            <p>{result.interaction.clinicalEffect}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    {result.interaction?.management && (
-                      <div className="mt-4 bg-white p-5 rounded-lg border-l-4 border-current">
-                        <h3 className="text-sm font-bold uppercase text-gray-500 mb-2">Management Recommendation</h3>
-                        <p className="font-semibold text-lg">{result.interaction.management}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
+      {error ? (
+        <div className="mt-6">
+          <ErrorNote code={error.code} message={error.message} />
+        </div>
+      ) : null}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-              <div className="card">
-                <h3 className="font-semibold mb-4 text-[var(--color-ink)]">Patient's active medications</h3>
-                {result.existingMeds && result.existingMeds.length > 0 ? (
-                  <ul className="space-y-2">
-                    {result.existingMeds.map((med: any, idx: number) => (
-                      <li key={idx} className="flex justify-between items-center py-2 border-b border-[var(--color-border)] last:border-0">
-                        <span className="font-medium text-[var(--color-ink)]">{med.conceptName}</span>
-                        <span className="text-xs text-[var(--color-ink-muted)] bg-[var(--color-surface)] px-2 py-1 rounded">
-                          {med.vocabularyId}: {med.conceptCode || med.conceptId}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-[var(--color-ink-muted)]">No active medications found.</p>
-                )}
-              </div>
-              
-              <div className="card flex flex-col justify-between">
-                <div>
-                  <h3 className="font-semibold mb-4 text-[var(--color-ink)]">Knowledge Source</h3>
-                  <p className="text-sm text-[var(--color-ink-secondary)] mb-4">
-                    Interaction data sourced from trusted medical databases.
-                  </p>
-                  <div className="inline-block px-3 py-1 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-sm">
-                    {result.knowledgeSource || 'OMOP Vocabulary'}
-                  </div>
-                </div>
-                
-                <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
-                  <button 
-                    className="btn btn-ghost w-full" 
-                    onClick={() => {
-                      setResult(null);
-                      setDrugName('');
-                    }}
-                  >
-                    Check another drug
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
+      {pending && !result ? (
+        <div className="mt-6 space-y-3" aria-hidden>
+          <Skeleton className="h-28 w-full" />
+        </div>
+      ) : null}
+
+      {result ? (
+        <div className="mt-6 space-y-6">
+          <InteractionAlert result={result} />
+
+          <ExistingInteractions pairs={result.otherInteractions} />
+
+          <Card className="p-6 sm:p-7">
+            <h2 className="mb-5 flex items-center gap-2.5 text-[1.25rem]">
+              <PillIcon size={18} className="text-ink-3" aria-hidden />
+              Checked against
+              <Pill className="ml-1">{result.existingMeds.length}</Pill>
+            </h2>
+            <MedicationList medications={result.existingMeds} />
+
+            {result.checkedConceptIds?.length ? (
+              <p className="mt-5 break-all font-mono text-[0.6875rem] leading-relaxed text-ink-3">
+                concept ids: [{result.checkedConceptIds.join(", ")}]
+              </p>
+            ) : null}
+          </Card>
+        </div>
+      ) : null}
+    </>
   );
 }
 
 export default function PrescribePage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
-        <div className="flex-1 flex items-center justify-center text-[var(--color-ink-muted)]">
-          Loading...
-        </div>
-      </div>
-    }>
-      <PrescribeContent />
-    </Suspense>
+    <PageShell width="narrow">
+      <Suspense
+        fallback={
+          <div className="space-y-4" aria-hidden>
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-12 w-2/3" />
+            <Skeleton className="h-28 w-full" />
+          </div>
+        }
+      >
+        <PrescribeForm />
+      </Suspense>
+    </PageShell>
   );
 }

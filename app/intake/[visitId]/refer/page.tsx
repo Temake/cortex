@@ -1,219 +1,261 @@
-'use client';
+/**
+ * /intake/[visitId]/refer — the nurse hands the visit over to OAUTHC.
+ *
+ * Posts to /api/refer, which mints a scoped, time-boxed referral token. The
+ * token is shown as a QR code plus a copyable link so the receiving doctor can
+ * "scan" it during the demo by opening the link or pasting the token.
+ *
+ * What the QR encodes is the referral link, never the underlying sandbox grant
+ * token — that stays server-side.
+ */
+"use client";
 
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
-import { QRCodeSVG } from 'qrcode.react';
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import {
+  ArrowRight,
+  CalendarClock,
+  Check,
+  QrCode,
+  ShieldCheck,
+  Stethoscope,
+} from "lucide-react";
 
-interface ReferralResponse {
-  ok: boolean;
-  referralId?: string;
-  grantToken?: string;
-  link?: string;
-  expiresAt?: string;
-  expiresInHours?: number;
-  scope?: any;
-  visit?: any;
-  error?: { code: string; message: string };
-}
+import { PageShell } from "@/components/site-nav";
+import {
+  Button,
+  Card,
+  CopyButton,
+  ErrorNote,
+  Eyebrow,
+  Field,
+  Pill,
+  Reveal,
+} from "@/components/ui";
+import {
+  ApiClientError,
+  formatDateTime,
+  postJson,
+  relativeTime,
+  type ReferResponse,
+} from "@/lib/contracts";
+
+const TTL_OPTIONS = [
+  { value: "24", label: "24 hours" },
+  { value: "48", label: "48 hours" },
+  { value: "72", label: "72 hours" },
+];
 
 export default function ReferPage() {
-  const params = useParams();
-  const visitId = params?.visitId as string;
+  const params = useParams<{ visitId: string }>();
+  const visitId = params?.visitId ?? "";
 
-  const [reason, setReason] = useState('');
-  const [ttlHours, setTtlHours] = useState('48');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ReferralResponse | null>(null);
-  const [copiedLink, setCopiedLink] = useState(false);
-  const [copiedToken, setCopiedToken] = useState(false);
+  const [reason, setReason] = useState("");
+  const [ttlHours, setTtlHours] = useState("48");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<{ code: string; message: string } | null>(null);
+  const [result, setResult] = useState<ReferResponse | null>(null);
 
-  const generateReferral = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  async function generate(event: React.FormEvent) {
+    event.preventDefault();
+    setPending(true);
     setError(null);
+
     try {
-      const res = await fetch('/api/refer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visitId, reason, ttlHours: Number(ttlHours) }),
-      });
-      const data: ReferralResponse = await res.json();
-      if (data.ok) {
-        setResult(data);
-      } else {
-        setError(data.error?.message || 'Failed to generate referral');
-      }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      setResult(
+        await postJson<ReferResponse>("/api/refer", {
+          visitId,
+          reason: reason.trim() || undefined,
+          ttlHours: Number(ttlHours),
+        }),
+      );
+    } catch (err) {
+      setError(
+        err instanceof ApiClientError
+          ? { code: err.code, message: err.message }
+          : { code: "UNKNOWN", message: "Could not create the referral." },
+      );
     } finally {
-      setLoading(false);
+      setPending(false);
     }
-  };
-
-  const copyLink = () => {
-    if (result?.link) {
-      navigator.clipboard.writeText(result.link);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
-    }
-  };
-
-  const copyToken = () => {
-    if (result?.grantToken) {
-      navigator.clipboard.writeText(result.grantToken);
-      setCopiedToken(true);
-      setTimeout(() => setCopiedToken(false), 2000);
-    }
-  };
-
-  const formatDate = (isoStr: string) => {
-    return new Date(isoStr).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-ink)]">
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-        <a href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight text-[var(--color-ink)]">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="16.8" cy="7.2" r="3.5" fill="currentColor"/>
-            <circle cx="16.8" cy="16.7" r="3.5" fill="currentColor"/>
-            <circle cx="7.3" cy="7.2" r="3.5" fill="currentColor"/>
-            <circle cx="7.3" cy="16.7" r="3.5" fill="currentColor"/>
-            <circle cx="2.7" cy="10.4" r="1.2" fill="currentColor"/>
-            <circle cx="21.3" cy="10.4" r="1.2" fill="currentColor"/>
-            <circle cx="2.7" cy="13.7" r="1.2" fill="currentColor"/>
-            <circle cx="21.3" cy="13.7" r="1.2" fill="currentColor"/>
-            <circle cx="13.6" cy="2.7" r="1.2" fill="currentColor"/>
-            <circle cx="10.3" cy="2.7" r="1.2" fill="currentColor"/>
-            <circle cx="13.6" cy="21.4" r="1.2" fill="currentColor"/>
-            <circle cx="10.3" cy="21.4" r="1.2" fill="currentColor"/>
-          </svg>
-          Cortex
-        </a>
-        <div className="text-sm text-[var(--color-ink-secondary)]">
-          Cortex &gt; Refer to OAUTHC
-        </div>
-      </nav>
+    <PageShell width={result ? "wide" : "narrow"}>
+      <Reveal>
+        <Eyebrow className="mb-3.5">Nurse · step 2 of 2</Eyebrow>
+        <h1 className="text-[2.25rem] leading-[1.1] sm:text-[2.75rem]">
+          {result ? "Referral ready." : "Refer to OAUTHC,"}
+          <span className="headline-mute">
+            {result ? " Hand it over." : " with scoped consent."}
+          </span>
+        </h1>
+        <p className="mt-4 max-w-xl text-[1.0625rem] leading-relaxed text-ink-2">
+          {result
+            ? "The receiving doctor can scan this code, open the link, or paste the token. It expires on its own."
+            : "This creates a consent token limited to the systems this visit touched, valid for a fixed window."}
+        </p>
+      </Reveal>
 
-      <main className="max-w-3xl mx-auto p-6 space-y-8">
-        {!result ? (
-          <div className="card p-6">
-            <h1 className="font-display text-2xl mb-6">Generate Referral</h1>
-            {error && (
-              <div className="mb-4 p-4 border border-[var(--color-border)] bg-red-50 text-red-700 rounded-md">
-                {error}
-              </div>
-            )}
-            <form onSubmit={generateReferral} className="space-y-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-[var(--color-ink-secondary)]">
-                  REASON FOR REFERRAL
-                </label>
+      {/* ── Before: the form ─────────────────────────────────────────── */}
+      {!result ? (
+        <Reveal delay={90}>
+          <form onSubmit={generate} className="mt-10 space-y-6">
+            {error ? <ErrorNote code={error.code} message={error.message} /> : null}
+
+            <Card className="p-6 sm:p-7">
+              <Field
+                label="Reason for referral"
+                htmlFor="reason"
+                hint="Optional. Shown to the receiving doctor when they open the referral."
+                className="mb-6"
+              >
                 <textarea
-                  className="input w-full min-h-[100px]"
-                  placeholder="e.g. Persistent fever, needs specialist review"
+                  id="reason"
+                  className="input"
+                  placeholder="Persistent fever, needs review at OAUTHC…"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                 />
-              </div>
+              </Field>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-[var(--color-ink-secondary)]">
-                  REFERRAL VALIDITY
-                </label>
+              <Field label="Valid for" htmlFor="ttl" hint="The token stops working after this.">
                 <select
-                  className="input w-full"
+                  id="ttl"
+                  className="input"
                   value={ttlHours}
                   onChange={(e) => setTtlHours(e.target.value)}
                 >
-                  <option value="24">24h</option>
-                  <option value="48">48h (default)</option>
-                  <option value="72">72h</option>
+                  {TTL_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
+              </Field>
+
+              <div className="mt-6 rounded-xl border border-line bg-canvas-soft p-4">
+                <p className="mb-1 font-mono text-[0.625rem] uppercase tracking-widest text-ink-3">
+                  Visit
+                </p>
+                <p className="break-all font-mono text-[0.8125rem] text-ink-2">{visitId}</p>
+              </div>
+            </Card>
+
+            <Button type="submit" size="lg" pending={pending} icon={ShieldCheck}>
+              {pending ? "Creating referral…" : "Create referral"}
+            </Button>
+          </form>
+        </Reveal>
+      ) : (
+        /* ── After: the handoff ───────────────────────────────────────── */
+        <div className="mt-10 grid gap-6 lg:grid-cols-[auto_1fr] lg:gap-8">
+          <Reveal>
+            <Card className="p-6 text-center sm:p-8">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-ok-line bg-ok-soft px-3 py-1.5 text-[0.8125rem] font-medium text-ok">
+                <Check size={13} aria-hidden />
+                Consent issued
               </div>
 
-              <button
-                type="submit"
-                className="btn btn-primary w-full"
-                disabled={loading}
-              >
-                {loading ? 'Generating...' : 'Generate referral'}
-              </button>
-            </form>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <h2 className="font-display text-3xl">Referral issued</h2>
-            
-            <div className="card p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm font-medium text-[var(--color-ink-secondary)] mb-1">REFERRAL ID</div>
-                  <div className="font-mono text-[var(--color-ink)]">
-                    {result.referralId?.substring(0, 8)}...
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-[var(--color-ink-secondary)] mb-1">EXPIRES AT</div>
-                  <div className="text-[var(--color-ink)]">
-                    {result.expiresAt ? formatDate(result.expiresAt) : 'N/A'}
-                  </div>
-                </div>
+              <div className="mx-auto w-fit rounded-2xl border border-line bg-white p-5">
+                <QRCodeSVG
+                  value={result.link}
+                  size={196}
+                  level="M"
+                  marginSize={0}
+                  fgColor="#17191b"
+                  bgColor="#ffffff"
+                />
               </div>
 
-              <div className="flex flex-col items-center justify-center p-8 border border-[var(--color-border)] rounded-lg bg-white space-y-6">
-                <QRCodeSVG value={result.link || ''} size={200} />
-                
-                <div className="flex flex-col items-center w-full max-w-sm space-y-2">
-                  <button
-                    onClick={copyLink}
-                    className="flex items-center justify-between w-full p-3 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md hover:bg-gray-50 transition-colors"
-                  >
-                    <span className="truncate text-sm text-[var(--color-ink-secondary)] mr-2">
-                      {result.link}
-                    </span>
-                    <span className="text-sm font-medium shrink-0 text-[var(--color-ink)]">
-                      {copiedLink ? 'Copied!' : 'Copy'}
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-[var(--color-ink-secondary)]">GRANT TOKEN</div>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 p-3 bg-gray-50 border border-[var(--color-border)] rounded-md font-mono text-xs overflow-x-auto">
-                    {result.grantToken}
-                  </div>
-                  <button
-                    onClick={copyToken}
-                    className="btn btn-ghost shrink-0"
-                  >
-                    {copiedToken ? 'Copied!' : 'Copy'}
-                  </button>
-                </div>
-              </div>
-
-              <p className="text-sm text-[var(--color-ink-muted)]">
-                The doctor scans this QR code or pastes the token to access the patient's scoped history.
+              <p className="mx-auto mt-5 flex max-w-[15rem] items-center justify-center gap-2 text-[0.8125rem] leading-relaxed text-ink-3">
+                <QrCode size={14} className="shrink-0" aria-hidden />
+                Scan from the OAUTHC device to open the referral
               </p>
+            </Card>
+          </Reveal>
+
+          <Reveal delay={100} className="space-y-6">
+            {/* Expiry */}
+            <Card className="p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="mb-1.5 font-mono text-[0.625rem] uppercase tracking-widest text-ink-3">
+                    Expires
+                  </p>
+                  <p className="font-display text-[1.25rem] font-semibold tracking-tight">
+                    {relativeTime(result.expiresAt)}
+                  </p>
+                  <p className="mt-1 text-[0.8125rem] text-ink-3">
+                    {formatDateTime(result.expiresAt)}
+                  </p>
+                </div>
+                <Pill tone="ok" icon={CalendarClock}>
+                  {result.expiresInHours}h window
+                </Pill>
+              </div>
+            </Card>
+
+            {/* Link */}
+            <Card className="p-6">
+              <p className="mb-3 font-mono text-[0.625rem] uppercase tracking-widest text-ink-3">
+                Shareable link
+              </p>
+              <p className="mb-4 break-all rounded-xl border border-line bg-canvas-soft p-3.5 font-mono text-[0.8125rem] leading-relaxed text-ink-2">
+                {result.link}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <CopyButton value={result.link} label="Copy link" />
+                <CopyButton value={result.grantToken} label="Copy token only" />
+              </div>
+            </Card>
+
+            {/* Scope */}
+            <Card className="p-6">
+              <p className="mb-3 font-mono text-[0.625rem] uppercase tracking-widest text-ink-3">
+                Scope granted
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {result.scope.systems?.length ? (
+                  result.scope.systems.map((system) => (
+                    <Pill key={system} tone="ok">
+                      {system}
+                    </Pill>
+                  ))
+                ) : (
+                  <Pill tone="warn">All systems</Pill>
+                )}
+                {result.scope.eventTypes?.map((type) => (
+                  <Pill key={type} mono>
+                    {type}
+                  </Pill>
+                ))}
+              </div>
+              <p className="mt-4 text-[0.8125rem] leading-relaxed text-ink-3">
+                Referral <span className="font-mono">{result.referralId.slice(0, 8)}</span> ·{" "}
+                {result.visit.eventCount} event
+                {result.visit.eventCount === 1 ? "" : "s"} from this visit.
+              </p>
+            </Card>
+
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href={`/doctor?token=${encodeURIComponent(result.grantToken)}`}
+                className="btn btn-primary"
+              >
+                <Stethoscope size={16} aria-hidden />
+                Open as the doctor
+                <ArrowRight size={16} aria-hidden />
+              </Link>
+              <Link href="/intake" className="btn btn-secondary">
+                Log another visit
+              </Link>
             </div>
-            
-            <div className="flex justify-start">
-              <button onClick={() => window.location.href='/'} className="btn btn-ghost">
-                ← Back to dashboard
-              </button>
-            </div>
-          </div>
-        )}
-      </main>
-    </div>
+          </Reveal>
+        </div>
+      )}
+    </PageShell>
   );
 }

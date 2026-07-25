@@ -9,6 +9,7 @@ build/
 
 *.tsbuildinfo
 next-env.d.ts
-
+*.docx
+graphify-out/
 .DS_Store
 *.log
