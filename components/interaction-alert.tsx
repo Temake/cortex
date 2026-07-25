@@ -42,12 +42,34 @@ const SEVERITY_STYLE: Record<
   clear: { alert: "alert-clear", icon: CircleCheck, label: "No interaction", tone: "ok" },
 };
 
-function SourceBadge({ source }: { source: InteractionCheckResponse["knowledgeSource"] }) {
-  return source === "holon" ? (
-    <Pill tone="ok" mono>
-      HOLON live
-    </Pill>
-  ) : (
+function SourceBadge({
+  source,
+  offlineOnlyCount = 0,
+}: {
+  source: InteractionCheckResponse["knowledgeSource"];
+  offlineOnlyCount?: number;
+}) {
+  if (source === "holon") {
+    return (
+      <Pill tone="ok" mono>
+        HOLON live
+      </Pill>
+    );
+  }
+
+  if (source === "mixed") {
+    return (
+      <Pill
+        tone="warn"
+        mono
+        title={`Checked live against HOLON, except ${offlineOnlyCount} medication(s) HOLON could not resolve, which were checked against the offline table instead.`}
+      >
+        HOLON live + {offlineOnlyCount} offline
+      </Pill>
+    );
+  }
+
+  return (
     <Pill tone="warn" mono title="HOLON was unreachable; this came from the offline reference table.">
       Offline reference
     </Pill>
@@ -133,7 +155,10 @@ export function InteractionAlert({ result }: { result: InteractionCheckResponse 
             <h3 className="font-display text-[1.375rem] font-semibold tracking-tight">
               {result.hasInteraction ? `${style.label} interaction` : "No interaction found"}
             </h3>
-            <SourceBadge source={result.knowledgeSource} />
+            <SourceBadge
+              source={result.knowledgeSource}
+              offlineOnlyCount={result.offlineOnlyCount}
+            />
             {!result.resolvedNewDrug ? <Pill tone="warn">Drug not recognised</Pill> : null}
           </div>
 

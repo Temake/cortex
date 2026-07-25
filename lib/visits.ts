@@ -16,7 +16,7 @@
  */
 import type { HealthEvent, Twin } from "@ontomorph/dtp-sdk";
 
-import { resolveConcept, type KnowledgeSource } from "./holon";
+import { DOMAIN, resolveConcept, type KnowledgeSource } from "./holon";
 
 /** Body systems this app writes to. Used verbatim as referral scope. */
 export const CARE_SYSTEMS = {
@@ -239,7 +239,7 @@ export async function writeIntake(
   const base = { visitId, hostel, app: APP_TAG, recordedBy: "nurse" as const };
 
   // 1. Presenting complaint, resolved to a clinical concept where we can.
-  const complaintConcept = await resolveConcept(input.complaint, "Condition");
+  const complaintConcept = await resolveConcept(input.complaint, DOMAIN.condition);
   if (complaintConcept) knowledgeSource = complaintConcept.source;
 
   written.push(
@@ -276,7 +276,7 @@ export async function writeIntake(
   // 3. One event per medication given, each resolved to a drug concept so the
   //    interaction check has a concept id to work with later.
   for (const med of meds) {
-    const drug = await resolveConcept(med, "Drug");
+    const drug = await resolveConcept(med, DOMAIN.drug);
     if (drug) knowledgeSource = drug.source;
 
     written.push(

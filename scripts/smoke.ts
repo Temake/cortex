@@ -87,22 +87,46 @@ async function main() {
   );
 
   // ── 4. Doctor checks a new prescription ────────────────────────────────────
-  step("POST /api/interactions/check  (ibuprofen — should flag)");
-  const check = await call("POST", "/api/interactions/check", { grantToken, newDrug: "Ibuprofen" });
+  //
+  // Tramadol vs the seeded Amitriptyline is the demo's headline: a MAJOR
+  // serotonin-syndrome interaction that is genuinely present in HOLON's table.
+  // (Warfarin + an NSAID is NOT in HOLON — see the note in scripts/seed.ts.)
+  step("POST /api/interactions/check  (tramadol — should flag MAJOR)");
+  const check = await call("POST", "/api/interactions/check", { grantToken, newDrug: "Tramadol" });
   line(`  hasInteraction ${check.hasInteraction}`);
   line(`  severity       ${check.severity}`);
   line(`  source         ${check.knowledgeSource}`);
   line(`  description    ${String(check.description).slice(0, 160)}…`);
-  assert(check.hasInteraction === true, "flags an interaction against the seeded Warfarin");
+  assert(check.hasInteraction === true, "flags an interaction against the seeded Amitriptyline");
   assert(String(check.severity).toLowerCase() === "major", "severity is major");
+  assert(check.knowledgeSource !== "fallback", "the finding came from live HOLON, not the offline table");
   assert(typeof check.description === "string" && String(check.description).length > 20, "has a renderable description");
   assert(check.interaction !== null, "returns the primary interaction object");
 
-  step("POST /api/interactions/check  (paracetamol — should be clear)");
-  const safe = await call("POST", "/api/interactions/check", { grantToken, newDrug: "Paracetamol" });
+  step("POST /api/interactions/check  (metronidazole — should flag against Warfarin)");
+  const moderate = await call("POST", "/api/interactions/check", {
+    grantToken,
+    newDrug: "Metronidazole",
+  });
+  line(`  hasInteraction ${moderate.hasInteraction}  severity ${moderate.severity}`);
+  assert(moderate.hasInteraction === true, "a common antibiotic also flags, so the demo is robust");
+
+  step("POST /api/interactions/check  (vitamin C — should be clear)");
+  const safe = await call("POST", "/api/interactions/check", { grantToken, newDrug: "Ascorbic acid" });
   line(`  hasInteraction ${safe.hasInteraction}`);
   line(`  description    ${String(safe.description).slice(0, 120)}…`);
-  assert(safe.hasInteraction === false, "does not flag a safe drug");
+  assert(safe.hasInteraction === false, "does not flag a benign drug");
+
+  // The student path: no token at all, reads their own twin.
+  step("POST /api/interactions/check  (NO token — the student self-check)");
+  const student = await call("POST", "/api/interactions/check", { newDrug: "Tramadol" });
+  line(`  hasInteraction ${student.hasInteraction}  severity ${student.severity}`);
+  line(`  existingMeds   ${(student.existingMeds as unknown[]).length}`);
+  assert(student.hasInteraction === true, "works with no grant token and still flags");
+  assert(
+    (student.existingMeds as unknown[]).length > 0,
+    "reads the student's own medication list without a grant",
+  );
 
   step("POST /api/interactions/check  (nonsense drug — resolves cleanly, no crash)");
   const unknown = await call("POST", "/api/interactions/check", { grantToken, newDrug: "zzzqqq" });

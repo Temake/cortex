@@ -77,20 +77,20 @@ export function HeroVisual() {
           ))}
         </div>
 
-        {/* medication rows */}
+        {/* Medication rows — the real demo pair, verified in HOLON's table. */}
         <div className="space-y-2">
           <div className="flex items-center justify-between rounded-xl border border-line px-3.5 py-2.5">
             <span className="flex items-center gap-2.5 text-[0.875rem] text-ink">
               <Pill size={14} className="text-ink-3" />
-              Warfarin 5mg
+              Amitriptyline 25mg
             </span>
-            <span className="pill pill-mono">RxNorm 11289</span>
+            <span className="pill pill-mono">DrugBank</span>
           </div>
 
           <div className="flex items-center justify-between rounded-xl border border-danger-line bg-danger-soft px-3.5 py-2.5">
             <span className="flex items-center gap-2.5 text-[0.875rem] font-medium text-danger">
               <TriangleAlert size={14} />
-              Ibuprofen — new
+              Tramadol — new
             </span>
             <span className="pill pill-danger">Major</span>
           </div>
@@ -111,7 +111,7 @@ export function HeroVisual() {
         style={{ animationDelay: "1.6s" }}
       >
         <span className="dot dot-danger dot-live" />
-        <span className="text-[0.75rem] font-medium text-ink">Bleeding risk</span>
+        <span className="text-[0.75rem] font-medium text-ink">Serotonin risk</span>
       </div>
     </div>
   );

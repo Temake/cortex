@@ -14,7 +14,7 @@
 import { AccessError, applyScope, openTwinSession } from "@/lib/access";
 import { handleError, ok, readJson } from "@/lib/api";
 import { connectSandboxTwin } from "@/lib/dtp";
-import { holonStatus, resolveConcept, type KnowledgeSource } from "@/lib/holon";
+import { DOMAIN, holonStatus, resolveConcept, type KnowledgeSource } from "@/lib/holon";
 import { fail } from "@/lib/api";
 import { ReferralTokenError } from "@/lib/referral";
 import {
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     let complaintConceptName = complaint?.conceptName ?? null;
     let complaintVocabulary = complaint?.vocabularyId ?? null;
     if (complaint && !complaintConceptName) {
-      const hit = await resolveConcept(complaint.value, "Condition");
+      const hit = await resolveConcept(complaint.value, DOMAIN.condition);
       if (hit) {
         complaintConceptName = hit.conceptName;
         complaintVocabulary = hit.vocabularyId;
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
       let name = med.conceptName;
       let vocab = med.vocabularyId;
       if (!name) {
-        const hit = await resolveConcept(med.value, "Drug");
+        const hit = await resolveConcept(med.value, DOMAIN.drug);
         if (hit) {
           name = hit.conceptName;
           vocab = hit.vocabularyId;

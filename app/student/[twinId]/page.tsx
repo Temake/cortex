@@ -11,9 +11,18 @@
  */
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Activity, CircleCheck, FileText, MapPin, RotateCcw } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  CircleCheck,
+  FileText,
+  MapPin,
+  RotateCcw,
+  ShieldQuestion,
+} from "lucide-react";
 
 import { PageShell } from "@/components/site-nav";
 import {
@@ -156,7 +165,31 @@ export default function StudentSummaryPage() {
             </Reveal>
           ) : null}
 
-          <Reveal delay={190}>
+          {/* The self-medication check — the thing a student actually returns for. */}
+          <Reveal delay={170}>
+            <Link href={`/student/${twinId}/check`} className="block">
+              <Card interactive className="group flex items-center gap-4 p-6">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-canvas-soft text-ink">
+                  <ShieldQuestion size={19} aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-[1.0625rem] font-semibold text-ink">
+                    Bought medicine from a chemist?
+                  </p>
+                  <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink-2">
+                    Check it against what&apos;s already on your record before you take it.
+                  </p>
+                </div>
+                <ArrowRight
+                  size={17}
+                  className="shrink-0 text-ink-3 transition-transform duration-300 group-hover:translate-x-1"
+                  aria-hidden
+                />
+              </Card>
+            </Link>
+          </Reveal>
+
+          <Reveal delay={210}>
             <p className="px-1 text-[0.8125rem] leading-relaxed text-ink-3">
               Resolved through the HOLON clinical knowledge API
               {data.knowledgeSource === "fallback"

@@ -11,6 +11,13 @@ export type ApiResult<T> = ({ ok: true } & T) | ApiFailure;
 
 export type KnowledgeSource = "holon" | "fallback";
 
+/**
+ * Where an interaction result came from. "mixed" means some drugs were checked
+ * live against HOLON and others only against the offline table, because HOLON
+ * could not resolve them — the two id spaces are not comparable.
+ */
+export type InteractionSource = KnowledgeSource | "mixed";
+
 export type HolonStatus = {
   live: boolean;
   lastError: string | null;
@@ -122,8 +129,10 @@ export type InteractionCheckResponse = {
   newDrug: { query: string; conceptId: number | null; conceptName: string | null; vocabularyId?: string | null };
   existingMeds: MedicationRecord[];
   checkedConceptIds?: number[];
+  /** Medications HOLON could not resolve, so they sat out the live check. */
+  offlineOnlyCount?: number;
   twinId?: string;
-  knowledgeSource: KnowledgeSource;
+  knowledgeSource: InteractionSource;
   holon: HolonStatus;
 };
 

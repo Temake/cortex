@@ -35,8 +35,15 @@ import {
   type InteractionCheckResponse,
 } from "@/lib/contracts";
 
-/** Quick picks for the live demo — the first one is the deliberate collision. */
-const SUGGESTIONS = ["Ibuprofen", "Paracetamol", "Metronidazole", "Ciprofloxacin", "Amoxicillin"];
+/**
+ * Quick picks for the live demo, ordered by what they demonstrate:
+ *   Tramadol      -> MAJOR    vs the seeded Amitriptyline (serotonin syndrome)
+ *   Metronidazole -> moderate vs the seeded Warfarin
+ *   Ciprofloxacin -> moderate vs the seeded Warfarin
+ *   Amoxicillin   -> clear
+ * All four are verified present (or absent) in HOLON's live interaction table.
+ */
+const SUGGESTIONS = ["Tramadol", "Metronidazole", "Ciprofloxacin", "Fluconazole", "Amoxicillin"];
 
 function PrescribeForm() {
   const searchParams = useSearchParams();

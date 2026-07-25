@@ -1,7 +1,12 @@
 /**
- * POST /api/interactions/check — check a new prescription against the twin.
+ * POST /api/interactions/check — check a drug against the twin's medications.
  *
- * Body:   { grantToken, newDrug }
+ * Serves two callers:
+ *   - the doctor, who passes a referral `grantToken` and gets a scoped read;
+ *   - the student, who passes no token and reads their own twin (they own it, so
+ *     no grant is involved).
+ *
+ * Body:   { grantToken?, newDrug }
  * Returns { ok, hasInteraction, severity, description, interaction,
  *           interactions, otherInteractions, newDrug, existingMeds, ... }
  *
@@ -17,8 +22,10 @@
  */
 import { AccessError, applyScope, openTwinSession } from "@/lib/access";
 import { fail, handleError, ok, readJson } from "@/lib/api";
+import { connectSandboxTwin } from "@/lib/dtp";
 import {
   checkDrugList,
+  DOMAIN,
   holonStatus,
   resolveConcept,
   sortBySeverity,
@@ -56,12 +63,25 @@ export async function POST(request: Request) {
   }
 
   try {
-    const session = openTwinSession(raw ?? "");
-    const scoped = applyScope(await readCareEvents(session.twin), session);
-    const meds = extractMedications(scoped);
+    // A token scopes the read to what a referral authorised — that is the
+    // doctor's path. WITHOUT one we fall back to the single sandbox twin, which
+    // is the student checking their own record: they own the twin, so no grant
+    // is involved. /api/summary already works this way; this mirrors it.
+    let meds: ReturnType<typeof extractMedications>;
+    let twinId: string;
+
+    if (raw && raw.trim()) {
+      const session = openTwinSession(raw);
+      meds = extractMedications(applyScope(await readCareEvents(session.twin), session));
+      twinId = session.twinId;
+    } else {
+      const twin = connectSandboxTwin();
+      meds = extractMedications(await readCareEvents(twin));
+      twinId = twin.id;
+    }
 
     // 1. Resolve the drug the doctor is about to prescribe.
-    const resolved = await resolveConcept(newDrug.trim(), "Drug");
+    const resolved = await resolveConcept(newDrug.trim(), DOMAIN.drug);
     if (!resolved) {
       return ok({
         hasInteraction: false,
@@ -78,20 +98,41 @@ export async function POST(request: Request) {
       });
     }
 
-    // 2. Resolve any existing medication that was recorded without a concept id
-    //    (pre-existing twin events, or intake written while HOLON was down).
+    // 2. Re-resolve every existing medication by name rather than trusting the
+    //    stored conceptId.
+    //
+    //    Stored ids cannot be trusted for an interaction check: events written
+    //    while HOLON was unreachable carry offline-table RxNorm codes, and even
+    //    a live-resolved id may be the RxNorm concept, which has no interaction
+    //    rows. Re-resolving routes every drug through the DrugBank-preferring
+    //    picker, which is what the interaction table is keyed on.
     const existing = await Promise.all(
       meds.map(async (med) => {
-        if (med.conceptId) return med;
-        const hit = await resolveConcept(med.name, "Drug");
-        return { ...med, conceptId: hit?.conceptId ?? null, conceptName: hit?.conceptName ?? null };
+        const hit = await resolveConcept(med.name, DOMAIN.drug);
+        return {
+          ...med,
+          conceptId: hit?.conceptId ?? med.conceptId,
+          conceptName: hit?.conceptName ?? med.conceptName,
+          resolvedFrom: hit?.source ?? null,
+        };
       }),
     );
 
-    const existingIds = existing.map((m) => m.conceptId).filter((id): id is number => id != null);
+    // 3. Partition by id space before checking — HOLON ids and offline-table
+    //    RxNorm codes are not comparable. See the note on checkDrugList.
+    const holonIds: number[] = [];
+    const fallbackIds: number[] = [];
 
-    // 3. Check the whole medication list at once.
-    const { interactions, source } = await checkDrugList([...existingIds, resolved.conceptId]);
+    for (const med of existing) {
+      if (med.conceptId == null) continue;
+      (med.resolvedFrom === "fallback" ? fallbackIds : holonIds).push(med.conceptId);
+    }
+    (resolved.source === "fallback" ? fallbackIds : holonIds).push(resolved.conceptId);
+
+    const { interactions, source, offlineOnlyCount } = await checkDrugList({
+      holonIds,
+      fallbackIds,
+    });
 
     const involvesNew = (i: InteractionPair) =>
       i.drugA === resolved.conceptId || i.drugB === resolved.conceptId;
@@ -115,8 +156,10 @@ export async function POST(request: Request) {
         vocabularyId: resolved.vocabularyId,
       },
       existingMeds: existing,
-      checkedConceptIds: [...existingIds, resolved.conceptId],
-      twinId: session.twinId,
+      checkedConceptIds: [...holonIds, ...fallbackIds],
+      /** Medications HOLON could not resolve, so they sat out the live check. */
+      offlineOnlyCount,
+      twinId,
       knowledgeSource: source,
       holon: holonStatus(),
     });

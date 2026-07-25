@@ -1,22 +1,23 @@
 /**
- * Offline clinical fallback data.
+ * Offline clinical fallback data — a safety net, not the primary path.
  *
- * WHY THIS EXISTS: as of build time `https://holon-api.ontomorph.com` answers
- * every documented path (`GET /concepts?q=…`, `/interactions/check-list`, …)
- * with a bare `404 page not found`, with or without an Authorization header.
- * That is the exact URL, path and auth scheme the official docs and the SDK
- * both use, so it is an upstream outage rather than a client mistake.
+ * WHY THIS EXISTS: earlier today `https://holon-api.ontomorph.com` answered
+ * every documented path with a bare `404 page not found`, with or without an
+ * Authorization header — the exact URL, path and auth scheme the official docs
+ * and the SDK both use. It has since recovered, and HOLON is now the live source
+ * for both concept resolution and interaction checks. This table exists so the
+ * demo degrades instead of dying if that outage recurs.
  *
- * Rather than let the live demo hard-fail on a dead dependency, every HOLON
- * call in `lib/holon.ts` tries the real API first and only falls back to this
- * table if the call throws. Responses always report which path was taken via
- * a `source: "holon" | "fallback"` field, so nothing here can silently
- * masquerade as real clinical knowledge.
+ * IMPORTANT — these `conceptId` values are RxNorm ingredient CODES, which are
+ * NOT HOLON concept ids. HOLON keys its own concepts separately (RxNorm warfarin
+ * is HOLON concept 5790975, code 11289; the interaction table keys on the
+ * DrugBank concept, 5924518). Sending an id from this table to the live
+ * interaction endpoint therefore returns a confident, wrong "no interaction".
+ * `checkDrugList` refuses to go live when any input id came from here — do not
+ * relax that guard.
  *
- * Concept ids are genuine RxNorm ingredient codes (the same identifier space
- * the Ontomorph docs use in their own example: `interactions.check(1191, 11289)`
- * is aspirin vs. warfarin). The interaction rows are well-established
- * pharmacology, deliberately kept small and demo-focused.
+ * The interaction rows are well-established pharmacology, deliberately small and
+ * demo-focused.
  */
 
 export type FallbackConcept = {
@@ -30,25 +31,25 @@ export type FallbackConcept = {
 };
 
 export const FALLBACK_DRUGS: FallbackConcept[] = [
-  { conceptId: 11289, conceptName: "Warfarin", conceptCode: "11289", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["warfarin", "coumadin"] },
-  { conceptId: 5640, conceptName: "Ibuprofen", conceptCode: "5640", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["ibuprofen", "brufen", "advil", "nurofen"] },
-  { conceptId: 1191, conceptName: "Aspirin", conceptCode: "1191", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["aspirin", "acetylsalicylic acid", "asa"] },
-  { conceptId: 161, conceptName: "Acetaminophen", conceptCode: "161", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["paracetamol", "acetaminophen", "panadol", "tylenol"] },
-  { conceptId: 3355, conceptName: "Diclofenac", conceptCode: "3355", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["diclofenac", "voltaren", "cataflam"] },
-  { conceptId: 7258, conceptName: "Naproxen", conceptCode: "7258", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["naproxen", "naprosyn"] },
-  { conceptId: 6922, conceptName: "Metronidazole", conceptCode: "6922", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["metronidazole", "flagyl"] },
-  { conceptId: 2551, conceptName: "Ciprofloxacin", conceptCode: "2551", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["ciprofloxacin", "cipro", "ciproxin"] },
-  { conceptId: 723, conceptName: "Amoxicillin", conceptCode: "723", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["amoxicillin", "amoxil"] },
-  { conceptId: 2193, conceptName: "Ceftriaxone", conceptCode: "2193", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["ceftriaxone", "rocephin"] },
-  { conceptId: 4450, conceptName: "Fluconazole", conceptCode: "4450", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["fluconazole", "diflucan"] },
-  { conceptId: 6809, conceptName: "Metformin", conceptCode: "6809", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["metformin", "glucophage"] },
-  { conceptId: 17767, conceptName: "Amlodipine", conceptCode: "17767", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["amlodipine", "norvasc"] },
-  { conceptId: 435, conceptName: "Albuterol", conceptCode: "435", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["salbutamol", "albuterol", "ventolin"] },
-  { conceptId: 8638, conceptName: "Prednisolone", conceptCode: "8638", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["prednisolone", "prednisone"] },
-  { conceptId: 2393, conceptName: "Chloroquine", conceptCode: "2393", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["chloroquine"] },
-  { conceptId: 10180, conceptName: "Trimethoprim", conceptCode: "10180", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["trimethoprim", "septrin", "co-trimoxazole", "bactrim"] },
-  { conceptId: 7646, conceptName: "Omeprazole", conceptCode: "7646", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["omeprazole", "prilosec"] },
-  { conceptId: 74504, conceptName: "Artemether", conceptCode: "74504", vocabularyId: "RxNorm", domainId: "Drug", aliases: ["artemether", "artemether-lumefantrine", "coartem", "lonart"] },
+  { conceptId: 11289, conceptName: "Warfarin", conceptCode: "11289", vocabularyId: "RxNorm", domainId: "drug", aliases: ["warfarin", "coumadin"] },
+  { conceptId: 5640, conceptName: "Ibuprofen", conceptCode: "5640", vocabularyId: "RxNorm", domainId: "drug", aliases: ["ibuprofen", "brufen", "advil", "nurofen"] },
+  { conceptId: 1191, conceptName: "Aspirin", conceptCode: "1191", vocabularyId: "RxNorm", domainId: "drug", aliases: ["aspirin", "acetylsalicylic acid", "asa"] },
+  { conceptId: 161, conceptName: "Acetaminophen", conceptCode: "161", vocabularyId: "RxNorm", domainId: "drug", aliases: ["paracetamol", "acetaminophen", "panadol", "tylenol"] },
+  { conceptId: 3355, conceptName: "Diclofenac", conceptCode: "3355", vocabularyId: "RxNorm", domainId: "drug", aliases: ["diclofenac", "voltaren", "cataflam"] },
+  { conceptId: 7258, conceptName: "Naproxen", conceptCode: "7258", vocabularyId: "RxNorm", domainId: "drug", aliases: ["naproxen", "naprosyn"] },
+  { conceptId: 6922, conceptName: "Metronidazole", conceptCode: "6922", vocabularyId: "RxNorm", domainId: "drug", aliases: ["metronidazole", "flagyl"] },
+  { conceptId: 2551, conceptName: "Ciprofloxacin", conceptCode: "2551", vocabularyId: "RxNorm", domainId: "drug", aliases: ["ciprofloxacin", "cipro", "ciproxin"] },
+  { conceptId: 723, conceptName: "Amoxicillin", conceptCode: "723", vocabularyId: "RxNorm", domainId: "drug", aliases: ["amoxicillin", "amoxil"] },
+  { conceptId: 2193, conceptName: "Ceftriaxone", conceptCode: "2193", vocabularyId: "RxNorm", domainId: "drug", aliases: ["ceftriaxone", "rocephin"] },
+  { conceptId: 4450, conceptName: "Fluconazole", conceptCode: "4450", vocabularyId: "RxNorm", domainId: "drug", aliases: ["fluconazole", "diflucan"] },
+  { conceptId: 6809, conceptName: "Metformin", conceptCode: "6809", vocabularyId: "RxNorm", domainId: "drug", aliases: ["metformin", "glucophage"] },
+  { conceptId: 17767, conceptName: "Amlodipine", conceptCode: "17767", vocabularyId: "RxNorm", domainId: "drug", aliases: ["amlodipine", "norvasc"] },
+  { conceptId: 435, conceptName: "Albuterol", conceptCode: "435", vocabularyId: "RxNorm", domainId: "drug", aliases: ["salbutamol", "albuterol", "ventolin"] },
+  { conceptId: 8638, conceptName: "Prednisolone", conceptCode: "8638", vocabularyId: "RxNorm", domainId: "drug", aliases: ["prednisolone", "prednisone"] },
+  { conceptId: 2393, conceptName: "Chloroquine", conceptCode: "2393", vocabularyId: "RxNorm", domainId: "drug", aliases: ["chloroquine"] },
+  { conceptId: 10180, conceptName: "Trimethoprim", conceptCode: "10180", vocabularyId: "RxNorm", domainId: "drug", aliases: ["trimethoprim", "septrin", "co-trimoxazole", "bactrim"] },
+  { conceptId: 7646, conceptName: "Omeprazole", conceptCode: "7646", vocabularyId: "RxNorm", domainId: "drug", aliases: ["omeprazole", "prilosec"] },
+  { conceptId: 74504, conceptName: "Artemether", conceptCode: "74504", vocabularyId: "RxNorm", domainId: "drug", aliases: ["artemether", "artemether-lumefantrine", "coartem", "lonart"] },
 ];
 
 export type FallbackInteraction = {
@@ -129,22 +130,22 @@ export const FALLBACK_INTERACTIONS: FallbackInteraction[] = [
  * clinical language. Vitals are LOINC; complaints/conditions are SNOMED CT.
  */
 export const FALLBACK_CLINICAL_CONCEPTS: FallbackConcept[] = [
-  { conceptId: 8310, conceptName: "Body temperature", conceptCode: "8310-5", vocabularyId: "LOINC", domainId: "Measurement", aliases: ["temp", "temperature", "body temperature"] },
-  { conceptId: 85354, conceptName: "Blood pressure panel", conceptCode: "85354-9", vocabularyId: "LOINC", domainId: "Measurement", aliases: ["bp", "blood pressure"] },
-  { conceptId: 8867, conceptName: "Heart rate", conceptCode: "8867-4", vocabularyId: "LOINC", domainId: "Measurement", aliases: ["hr", "heart rate", "pulse"] },
-  { conceptId: 9279, conceptName: "Respiratory rate", conceptCode: "9279-1", vocabularyId: "LOINC", domainId: "Measurement", aliases: ["rr", "respiratory rate"] },
-  { conceptId: 2708, conceptName: "Oxygen saturation", conceptCode: "2708-6", vocabularyId: "LOINC", domainId: "Measurement", aliases: ["spo2", "oxygen saturation", "sats"] },
-  { conceptId: 386661006, conceptName: "Fever", conceptCode: "386661006", vocabularyId: "SNOMED", domainId: "Condition", aliases: ["fever", "pyrexia", "high temperature"] },
-  { conceptId: 25064002, conceptName: "Headache", conceptCode: "25064002", vocabularyId: "SNOMED", domainId: "Condition", aliases: ["headache"] },
-  { conceptId: 4834000, conceptName: "Typhoid fever", conceptCode: "4834000", vocabularyId: "SNOMED", domainId: "Condition", aliases: ["typhoid", "typhoid fever", "enteric fever"] },
-  { conceptId: 61462000, conceptName: "Malaria", conceptCode: "61462000", vocabularyId: "SNOMED", domainId: "Condition", aliases: ["malaria"] },
-  { conceptId: 25374005, conceptName: "Gastroenteritis", conceptCode: "25374005", vocabularyId: "SNOMED", domainId: "Condition", aliases: ["gastroenteritis", "diarrhoea", "diarrhea"] },
-  { conceptId: 54150009, conceptName: "Upper respiratory infection", conceptCode: "54150009", vocabularyId: "SNOMED", domainId: "Condition", aliases: ["upper respiratory infection", "uri", "catarrh", "cough and cold"] },
-  { conceptId: 195967001, conceptName: "Asthma", conceptCode: "195967001", vocabularyId: "SNOMED", domainId: "Condition", aliases: ["asthma"] },
-  { conceptId: 38341003, conceptName: "Hypertension", conceptCode: "38341003", vocabularyId: "SNOMED", domainId: "Condition", aliases: ["hypertension", "high blood pressure"] },
-  { conceptId: 422587007, conceptName: "Nausea", conceptCode: "422587007", vocabularyId: "SNOMED", domainId: "Condition", aliases: ["nausea", "vomiting"] },
-  { conceptId: 21522001, conceptName: "Abdominal pain", conceptCode: "21522001", vocabularyId: "SNOMED", domainId: "Condition", aliases: ["abdominal pain", "stomach pain", "belly pain"] },
-  { conceptId: 267036007, conceptName: "Shortness of breath", conceptCode: "267036007", vocabularyId: "SNOMED", domainId: "Condition", aliases: ["shortness of breath", "breathlessness", "dyspnoea"] },
+  { conceptId: 8310, conceptName: "Body temperature", conceptCode: "8310-5", vocabularyId: "LOINC", domainId: "measurement", aliases: ["temp", "temperature", "body temperature"] },
+  { conceptId: 85354, conceptName: "Blood pressure panel", conceptCode: "85354-9", vocabularyId: "LOINC", domainId: "measurement", aliases: ["bp", "blood pressure"] },
+  { conceptId: 8867, conceptName: "Heart rate", conceptCode: "8867-4", vocabularyId: "LOINC", domainId: "measurement", aliases: ["hr", "heart rate", "pulse"] },
+  { conceptId: 9279, conceptName: "Respiratory rate", conceptCode: "9279-1", vocabularyId: "LOINC", domainId: "measurement", aliases: ["rr", "respiratory rate"] },
+  { conceptId: 2708, conceptName: "Oxygen saturation", conceptCode: "2708-6", vocabularyId: "LOINC", domainId: "measurement", aliases: ["spo2", "oxygen saturation", "sats"] },
+  { conceptId: 386661006, conceptName: "Fever", conceptCode: "386661006", vocabularyId: "SNOMED", domainId: "condition", aliases: ["fever", "pyrexia", "high temperature"] },
+  { conceptId: 25064002, conceptName: "Headache", conceptCode: "25064002", vocabularyId: "SNOMED", domainId: "condition", aliases: ["headache"] },
+  { conceptId: 4834000, conceptName: "Typhoid fever", conceptCode: "4834000", vocabularyId: "SNOMED", domainId: "condition", aliases: ["typhoid", "typhoid fever", "enteric fever"] },
+  { conceptId: 61462000, conceptName: "Malaria", conceptCode: "61462000", vocabularyId: "SNOMED", domainId: "condition", aliases: ["malaria"] },
+  { conceptId: 25374005, conceptName: "Gastroenteritis", conceptCode: "25374005", vocabularyId: "SNOMED", domainId: "condition", aliases: ["gastroenteritis", "diarrhoea", "diarrhea"] },
+  { conceptId: 54150009, conceptName: "Upper respiratory infection", conceptCode: "54150009", vocabularyId: "SNOMED", domainId: "condition", aliases: ["upper respiratory infection", "uri", "catarrh", "cough and cold"] },
+  { conceptId: 195967001, conceptName: "Asthma", conceptCode: "195967001", vocabularyId: "SNOMED", domainId: "condition", aliases: ["asthma"] },
+  { conceptId: 38341003, conceptName: "Hypertension", conceptCode: "38341003", vocabularyId: "SNOMED", domainId: "condition", aliases: ["hypertension", "high blood pressure"] },
+  { conceptId: 422587007, conceptName: "Nausea", conceptCode: "422587007", vocabularyId: "SNOMED", domainId: "condition", aliases: ["nausea", "vomiting"] },
+  { conceptId: 21522001, conceptName: "Abdominal pain", conceptCode: "21522001", vocabularyId: "SNOMED", domainId: "condition", aliases: ["abdominal pain", "stomach pain", "belly pain"] },
+  { conceptId: 267036007, conceptName: "Shortness of breath", conceptCode: "267036007", vocabularyId: "SNOMED", domainId: "condition", aliases: ["shortness of breath", "breathlessness", "dyspnoea"] },
 ];
 
 const ALL_FALLBACK = [...FALLBACK_DRUGS, ...FALLBACK_CLINICAL_CONCEPTS];
