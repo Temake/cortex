@@ -48,6 +48,6 @@ export function handleError(error: unknown) {
   const status =
     upstream === 401 || upstream === 403 ? 403 : upstream === 404 ? 404 : upstream === 400 ? 400 : 500;
 
-  console.error("[carebridge] route error:", code, message);
+  console.error("[cortex] route error:", code, message);
   return fail(code, message, status);
 }

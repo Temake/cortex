@@ -3,7 +3,7 @@
  *
  * Presented as a timeline rather than a table: the clinical question during the
  * demo is "what happened, and when", and a rail makes recency legible at a
- * glance. Events written by CareBridge are marked so a doctor can tell this
+ * glance. Events written by Cortex are marked so a doctor can tell this
  * visit's data from history that was already on the twin.
  */
 "use client";
@@ -96,7 +96,7 @@ function EventRow({ event, last }: { event: CareEvent; last: boolean }) {
       <span
         className={cx(
           "relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full border bg-surface",
-          event.fromCareBridge ? "border-ink/25 text-ink" : "border-line text-ink-3",
+          event.fromCortex ? "border-ink/25 text-ink" : "border-line text-ink-3",
         )}
       >
         <Icon size={15} aria-hidden />

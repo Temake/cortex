@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Cortex">
+  <rect width="512" height="512" rx="112" fill="#4338CA"/>
+  <g transform="translate(256 256) scale(13.2) translate(-16 -16)" fill="none">
+    <!-- the bridge -->
+    <path d="M7 20c0-6 4-10 9-10s9 4 9 10" stroke="#ffffff" stroke-width="2.25" stroke-linecap="round"/>
+    <!-- the two endpoints: Health Centre and OAUTHC -->
+    <circle cx="7" cy="21.5" r="3.4" fill="#ffffff"/>
+    <circle cx="25" cy="21.5" r="3.4" fill="#ffffff"/>
+    <!-- the record travelling across -->
+    <circle cx="16" cy="9.2" r="2.5" fill="#ffffff"/>
+    <circle cx="11.2" cy="12.4" r="1.1" fill="#ffffff" opacity="0.5"/>
+    <circle cx="20.8" cy="12.4" r="1.1" fill="#ffffff" opacity="0.5"/>
+  </g>
+</svg>

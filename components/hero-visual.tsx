@@ -1,10 +1,9 @@
 /**
  * The landing hero's right-hand visual.
  *
- * Ontomorph's hero renders a 3D body with floating clinical callouts. This one
- * keeps the callout language but swaps the body for what CareBridge actually
- * does: one patient record crossing from the Health Centre to OAUTHC, with the
- * interaction check firing on arrival.
+ * Shows what Cortex actually does: one patient record crossing from the Health
+ * Centre to OAUTHC, with the interaction check firing on arrival. Everything is
+ * in normal flow — no floating badges pinned around the card.
  *
  * Deliberately drawn in markup rather than shipped as an image — it stays sharp
  * at any density, themes off the same tokens, and needs no binary asset.
@@ -17,7 +16,7 @@ export function HeroVisual() {
   return (
     <div className="relative mx-auto w-full max-w-[520px]" aria-hidden>
       {/* soft ambient wash behind the composition */}
-      <div className="pointer-events-none absolute -inset-10 -z-10 rounded-[999px] bg-[radial-gradient(closest-side,rgba(23,25,27,0.07),transparent)]" />
+      <div className="pointer-events-none absolute -inset-10 -z-10 rounded-[999px] bg-[radial-gradient(closest-side,rgba(67,56,202,0.09),transparent)]" />
 
       {/* ── the journey: Health Centre -> OAUTHC ───────────────────── */}
       <div className="mb-4 flex items-center gap-3">
@@ -31,7 +30,7 @@ export function HeroVisual() {
         <ArrowRight size={16} className="shrink-0 text-ink-3" />
 
         <div className="flex flex-1 items-center gap-2.5 rounded-full border border-line bg-surface px-3.5 py-2.5 shadow-xs">
-          <span className="flex size-6 items-center justify-center rounded-full bg-ink text-white">
+          <span className="flex size-6 items-center justify-center rounded-full bg-accent text-white">
             <Building2 size={13} />
           </span>
           <span className="truncate text-[0.8125rem] font-medium text-ink">OAUTHC</span>
@@ -41,7 +40,7 @@ export function HeroVisual() {
       {/* ── the record card ───────────────────────────────────────── */}
       <div className="card relative overflow-hidden p-6 shadow-lg">
         {/* a slow scan sweep, to suggest "resolving continuously" */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ink/25 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
 
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
@@ -97,21 +96,10 @@ export function HeroVisual() {
         </div>
       </div>
 
-      {/* ── floating callouts ─────────────────────────────────────── */}
-      <div
-        className="absolute -left-6 top-[38%] hidden animate-float items-center gap-2 rounded-full border border-line bg-surface px-3 py-2 shadow-md sm:flex"
-        style={{ animationDelay: "0.4s" }}
-      >
-        <ShieldCheck size={13} className="text-ok" />
-        <span className="text-[0.75rem] font-medium text-ink">Scoped 48h</span>
-      </div>
-
-      <div
-        className="absolute -right-5 bottom-[22%] hidden animate-float items-center gap-2 rounded-full border border-danger-line bg-surface px-3 py-2 shadow-md sm:flex"
-        style={{ animationDelay: "1.6s" }}
-      >
-        <span className="dot dot-danger dot-live" />
-        <span className="text-[0.75rem] font-medium text-ink">Serotonin risk</span>
+      {/* The scope line, in-flow under the card rather than floating beside it. */}
+      <div className="mt-4 flex items-center justify-center gap-2 text-[0.8125rem] text-ink-2">
+        <ShieldCheck size={14} className="shrink-0 text-ok" />
+        Scoped to this visit · expires in 48 hours
       </div>
     </div>
   );

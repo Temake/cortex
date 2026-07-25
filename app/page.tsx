@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 
 import { HeroVisual } from "@/components/hero-visual";
+import { OfflineBanner } from "@/components/offline-status";
 import { SiteFooter, SiteNav } from "@/components/site-nav";
 import { ButtonLink, Card, Eyebrow, Pill, Reveal, SectionHeading } from "@/components/ui";
 
@@ -86,6 +87,7 @@ export default function Home() {
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteNav />
+      <OfflineBanner />
 
       <main className="flex-1">
         {/* ── Hero ─────────────────────────────────────────────────── */}
@@ -93,7 +95,7 @@ export default function Home() {
           <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
             <div>
               <Reveal>
-                <Eyebrow className="mb-5">CareBridge · OAU health centre → OAUTHC</Eyebrow>
+                <Eyebrow className="mb-5">Cortex · OAU health centre → OAUTHC</Eyebrow>
               </Reveal>
 
               <Reveal delay={70}>

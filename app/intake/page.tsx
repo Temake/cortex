@@ -16,15 +16,18 @@ import {
   Activity,
   ArrowRight,
   ClipboardPlus,
+  CloudUpload,
   MapPin,
   Plus,
   Stethoscope,
   X,
 } from "lucide-react";
 
-import { CareBridgeMark, PageShell } from "@/components/site-nav";
+import { OfflineNotice } from "@/components/offline-status";
+import { CortexMark, PageShell } from "@/components/site-nav";
 import { Button, Card, ErrorNote, Eyebrow, Field, Pill, Reveal, cx } from "@/components/ui";
 import { ApiClientError, postJson, type IntakeResponse } from "@/lib/contracts";
+import { enqueueIntake, isOffline } from "@/lib/offline-queue";
 
 /** OAU halls of residence, including the ones the mock cluster data uses. */
 const HOSTELS = [
@@ -74,6 +77,7 @@ export default function IntakePage() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
   const [touched, setTouched] = useState(false);
+  const [queued, setQueued] = useState(false);
 
   const complaintError = touched && !complaint.trim() ? "A presenting complaint is required." : null;
 
@@ -112,6 +116,15 @@ export default function IntakePage() {
     return rows;
   }, [complaint, vitals, meds]);
 
+  /** Clears the form after a queued submission, ready for the next patient. */
+  function resetForm() {
+    setComplaint("");
+    setVitals({ temp: "", bp: "", hr: "", rr: "", spo2: "" });
+    setMeds([]);
+    setMedDraft("");
+    setTouched(false);
+  }
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setTouched(true);
@@ -120,21 +133,41 @@ export default function IntakePage() {
     setPending(true);
     setError(null);
 
+    const payload = {
+      complaint: complaint.trim(),
+      // Send only the vitals that were actually filled in.
+      vitals: Object.fromEntries(Object.entries(vitals).filter(([, v]) => v !== "")),
+      medsGiven: meds,
+      hostel: hostel || null,
+    };
+
+    // Already known to be offline: queue without burning time on a doomed
+    // request. The nurse gets an immediate confirmation instead of a spinner.
+    if (isOffline()) {
+      await enqueueIntake(payload);
+      setQueued(true);
+      resetForm();
+      setPending(false);
+      return;
+    }
+
     try {
-      const result = await postJson<IntakeResponse>("/api/intake", {
-        complaint: complaint.trim(),
-        // Send only the vitals that were actually filled in.
-        vitals: Object.fromEntries(Object.entries(vitals).filter(([, v]) => v !== "")),
-        medsGiven: meds,
-        hostel: hostel || null,
-      });
+      const result = await postJson<IntakeResponse>("/api/intake", payload);
       router.push(`/intake/${result.visitId}/refer`);
     } catch (err) {
-      setError(
-        err instanceof ApiClientError
-          ? { code: err.code, message: err.message }
-          : { code: "UNKNOWN", message: "Something went wrong logging this visit." },
-      );
+      // The request never reached the server — queue it rather than lose it.
+      // Anything else is a real rejection the nurse needs to see and fix.
+      if (err instanceof ApiClientError && err.code === "NETWORK_ERROR") {
+        await enqueueIntake(payload);
+        setQueued(true);
+        resetForm();
+      } else {
+        setError(
+          err instanceof ApiClientError
+            ? { code: err.code, message: err.message }
+            : { code: "UNKNOWN", message: "Something went wrong logging this visit." },
+        );
+      }
       setPending(false);
     }
   }
@@ -157,6 +190,24 @@ export default function IntakePage() {
         {/* ── Form ───────────────────────────────────────────────────── */}
         <Reveal delay={80}>
           <form onSubmit={submit} noValidate className="space-y-6">
+            <OfflineNotice />
+
+            {queued ? (
+              <div className="alert alert-clear animate-fade-up" role="status">
+                <div className="flex items-start gap-3">
+                  <CloudUpload size={18} className="mt-0.5 shrink-0" aria-hidden />
+                  <div>
+                    <p className="font-medium">Saved on this device</p>
+                    <p className="mt-1 text-[0.875rem] leading-relaxed">
+                      This visit is queued and will upload by itself once you have
+                      signal. You can log the next patient now. The referral step
+                      opens once it has synced.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {error ? <ErrorNote code={error.code} message={error.message} /> : null}
 
             <Card className="p-6 sm:p-7">
@@ -321,7 +372,7 @@ export default function IntakePage() {
           <div className="lg:sticky lg:top-24">
             <Card className="overflow-hidden">
               <div className="flex items-center gap-2.5 border-b border-line bg-canvas-soft px-5 py-4">
-                <CareBridgeMark size={16} />
+                <CortexMark size={16} />
                 <p className="text-[0.9375rem] font-medium">Twin events preview</p>
               </div>
 

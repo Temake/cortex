@@ -43,7 +43,7 @@ export const env = {
   },
   /** HMAC secret used to sign the referral tokens issued by /api/refer. */
   get referralSecret() {
-    return optional("REFERRAL_SECRET", "carebridge-oau-dev-secret-change-me");
+    return optional("REFERRAL_SECRET", "cortex-oau-dev-secret-change-me");
   },
   /** Base URL used to build the shareable referral link returned by /api/refer. */
   get appBaseUrl() {

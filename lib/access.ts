@@ -2,7 +2,7 @@
  * Turning a token the doctor pasted into an authorised, scoped twin session.
  *
  * Two kinds of token arrive here:
- *   - a CareBridge referral token (`cbr1.…`) issued by /api/refer, which we
+ *   - a Cortex referral token (`ctx1.…`) issued by /api/refer, which we
  *     verify and whose scope we enforce ourselves; the underlying sandbox
  *     grant token never leaves the server;
  *   - a raw DTP grant JWT (`eyJ…`) pasted straight from the dashboard, which
@@ -20,7 +20,7 @@ import { type CareEvent } from "./visits";
 export type TwinSession = {
   twin: Twin;
   twinId: string;
-  /** Present only when the caller used a CareBridge referral token. */
+  /** Present only when the caller used a Cortex referral token. */
   referral: ReferralClaims | null;
   scope: {
     systems: string[] | null;
@@ -85,7 +85,7 @@ export function openTwinSession(rawToken: string): TwinSession {
     twin = connectTwin(token);
   } catch {
     throw new AccessError(
-      "That token is neither a CareBridge referral nor a valid DTP grant token.",
+      "That token is neither a Cortex referral nor a valid DTP grant token.",
       "INVALID_TOKEN",
       400,
     );

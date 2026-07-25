@@ -1,7 +1,7 @@
 /**
  * POST /api/doctor/history — the receiving doctor opens a referral.
  *
- * Body:   { grantToken }   (a CareBridge referral token, a raw DTP grant JWT,
+ * Body:   { grantToken }   (a Cortex referral token, a raw DTP grant JWT,
  *                           or the full referral link — all accepted)
  * Returns { ok, twinId, scope, referral, events: [...], systems: [...],
  *           medications: [...], visits: [...] }

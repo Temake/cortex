@@ -62,10 +62,17 @@ export default function StudentCheckPage() {
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
   const [result, setResult] = useState<InteractionCheckResponse | null>(null);
 
-  // Load the student's own medication list up front, so the page is useful
+  // The student's own medication list, loaded up front so the page is useful
   // before they type anything.
   const [meds, setMeds] = useState<SummaryResponse | null>(null);
   const [medsLoading, setMedsLoading] = useState(true);
+
+  /**
+   * Prefer the list that came back with a check — those entries carry the
+   * HOLON-resolved concept names. Before any check, fall back to the list
+   * loaded from /api/summary so the panel is never empty on arrival.
+   */
+  const shownMeds = result?.existingMeds ?? meds?.medications ?? [];
 
   useEffect(() => {
     let cancelled = false;
@@ -206,9 +213,9 @@ export default function StudentCheckPage() {
               <Skeleton className="h-4 w-2/3" />
               <Skeleton className="h-4 w-1/2" />
             </div>
-          ) : result?.existingMeds.length ? (
+          ) : shownMeds.length ? (
             <ul className="list-none divide-y divide-line-soft p-0">
-              {result.existingMeds.map((med) => (
+              {shownMeds.map((med) => (
                 <li key={med.eventId} className="flex items-center justify-between gap-3 px-5 py-3">
                   <span className="truncate text-[0.9375rem] text-ink">{med.name}</span>
                   {med.conceptName && med.conceptName !== med.name ? (
@@ -218,8 +225,9 @@ export default function StudentCheckPage() {
               ))}
             </ul>
           ) : (
-            <EmptyState icon={PillIcon} title="Run a check to see your list">
-              Your recorded medicines will appear here alongside the result.
+            <EmptyState icon={PillIcon} title="Nothing recorded yet">
+              Once a nurse logs a visit at the Health Centre, your medicines appear
+              here.
             </EmptyState>
           )}
         </Card>

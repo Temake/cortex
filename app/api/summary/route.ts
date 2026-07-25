@@ -18,6 +18,7 @@ import { DOMAIN, holonStatus, resolveConcept, type KnowledgeSource } from "@/lib
 import { fail } from "@/lib/api";
 import { ReferralTokenError } from "@/lib/referral";
 import {
+  extractMedications,
   groupVisits,
   readCareEvents,
   type CareEvent,
@@ -83,9 +84,10 @@ export async function POST(request: Request) {
         visitId: null,
         occurredAt: null,
         summary:
-          "There is no CareBridge visit recorded for this patient yet. Once a nurse logs an intake at the Health Centre, the summary will appear here.",
+          "There is no Cortex visit recorded for this patient yet. Once a nurse logs an intake at the Health Centre, the summary will appear here.",
         lines: [],
         items: [],
+        medications: extractMedications(events),
         knowledgeSource: null,
         holon: holonStatus(),
       });
@@ -189,6 +191,11 @@ export async function POST(request: Request) {
       summary: lines.join(" "),
       lines,
       items,
+      /**
+       * Every medication on the twin, not just this visit's. The student's
+       * safety check renders this on arrival, before they type anything.
+       */
+      medications: extractMedications(events),
       eventCount: visit.events.length,
       knowledgeSource,
       holon: holonStatus(),

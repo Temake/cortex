@@ -5,7 +5,7 @@
  * Doctor / Student / Clusters during the live demo, so it is always mounted and
  * highlights the active section.
  *
- * The mark is a CareBridge mark, not Ontomorph's: two linked nodes (Health
+ * The mark is a Cortex mark, not Ontomorph's: two linked nodes (Health
  * Centre and OAUTHC) bridged by an arc. It is drawn in the same geometric,
  * monochrome idiom as the reference without passing Ontomorph's own logo off as
  * this app's.
@@ -17,6 +17,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Activity, BarChart3, ClipboardPlus, Menu, Stethoscope, User, X } from "lucide-react";
 
+import { OfflineBanner } from "./offline-status";
 import { cx } from "./ui";
 
 const LINKS = [
@@ -26,7 +27,7 @@ const LINKS = [
   { href: "/clusters", label: "Clusters", icon: BarChart3 },
 ];
 
-export function CareBridgeMark({ size = 24 }: { size?: number }) {
+export function CortexMark({ size = 24 }: { size?: number }) {
   return (
     <svg
       viewBox="0 0 32 32"
@@ -98,8 +99,8 @@ export function SiteNav() {
           href="/"
           className="flex items-center gap-2.5 text-[1.0625rem] font-semibold tracking-tight text-ink transition-opacity hover:opacity-70"
         >
-          <CareBridgeMark />
-          CareBridge
+          <CortexMark />
+          Cortex
           <span className="hidden text-ink-3 sm:inline">OAU</span>
         </Link>
 
@@ -188,6 +189,7 @@ export function PageShell({
   return (
     <div className="flex min-h-dvh flex-col bg-canvas">
       <SiteNav />
+      <OfflineBanner />
       <main
         className={cx(
           "mx-auto w-full flex-1 px-5 pb-24 pt-10 sm:px-8 sm:pt-14",
@@ -206,8 +208,8 @@ export function SiteFooter() {
     <footer className="border-t border-line">
       <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-8 text-[0.8125rem] text-ink-3 sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <p className="flex items-center gap-2">
-          <CareBridgeMark size={16} />
-          CareBridge OAU — hackathon prototype
+          <CortexMark size={16} />
+          Cortex OAU — hackathon prototype
         </p>
         <p>
           Built on{" "}

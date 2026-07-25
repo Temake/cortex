@@ -92,7 +92,7 @@ function liveDisabled(): boolean {
 function noteFailure(error: unknown) {
   holonDownUntil = Date.now() + BREAKER_COOLDOWN_MS;
   lastHolonError = (error as Error)?.message ?? String(error);
-  console.warn("[carebridge] HOLON unavailable, using offline fallback:", lastHolonError);
+  console.warn("[cortex] HOLON unavailable, using offline fallback:", lastHolonError);
 }
 
 function noteSuccess() {
@@ -245,7 +245,7 @@ function offlineCheck(ids: number[]): InteractionPair[] {
           clinicalEffect: hit.clinicalEffect,
           management: hit.management,
           evidenceGrade: "established",
-          source: "CareBridge offline reference",
+          source: "Cortex offline reference",
         });
       }
     }

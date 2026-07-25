@@ -114,13 +114,13 @@ function DoctorPortal() {
               <Field
                 label="Referral token or link"
                 htmlFor="token"
-                hint="A CareBridge referral token, a full link, or a raw DTP grant token."
+                hint="A Cortex referral token, a full link, or a raw DTP grant token."
               >
                 <textarea
                   id="token"
                   className="input font-mono text-[0.8125rem] leading-relaxed"
                   rows={5}
-                  placeholder="cbr1.eyJyZWZlcnJhbElkIjoi…"
+                  placeholder="ctx1.eyJyZWZlcnJhbElkIjoi…"
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
                 />

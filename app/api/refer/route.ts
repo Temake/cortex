@@ -4,7 +4,7 @@
  * Body:   { visitId, reason?, ttlHours?, systems? }
  * Returns { ok, referralId, grantToken, link, expiresAt, scope, visit }
  *
- * `grantToken` is a CareBridge referral token, not a raw DTP grant. See the
+ * `grantToken` is a Cortex referral token, not a raw DTP grant. See the
  * header comment in lib/referral.ts for why: the platform does not let an app
  * create grants, so we mint a scoped, time-boxed, signed token of our own and
  * keep the sandbox grant token server-side. /api/doctor/history accepts either.

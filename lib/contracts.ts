@@ -49,7 +49,7 @@ export type CareEvent = {
   conceptName: string | null;
   vocabularyId: string | null;
   vitals: Vitals | null;
-  fromCareBridge: boolean;
+  fromCortex: boolean;
 };
 
 export type MedicationRecord = {
@@ -75,7 +75,7 @@ export type IntakeResponse = {
 /* ── POST /api/refer ──────────────────────────────────────────────── */
 export type ReferResponse = {
   referralId: string;
-  /** A CareBridge referral token — see lib/referral.ts on the naming. */
+  /** A Cortex referral token — see lib/referral.ts on the naming. */
   grantToken: string;
   link: string;
   issuedAt: string;
@@ -153,6 +153,8 @@ export type SummaryResponse = {
   summary: string;
   lines: string[];
   items: SummaryItem[];
+  /** Every medication on the twin, not just this visit's. */
+  medications: MedicationRecord[];
   eventCount?: number;
   knowledgeSource: KnowledgeSource | null;
   holon: HolonStatus;

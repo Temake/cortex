@@ -1,0 +1,35 @@
+{
+  "name": "Cortex OAU — health record continuity",
+  "short_name": "Cortex",
+  "description": "Log a visit at the Health Centre, refer to OAUTHC with scoped consent, and check a medicine against what you are already taking. Works offline at intake.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#4338ca",
+  "categories": ["health", "medical", "productivity"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Log an intake",
+      "short_name": "Intake",
+      "description": "Record a visit at the Health Centre",
+      "url": "/intake",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Check a medicine",
+      "short_name": "Check",
+      "description": "Is this safe with what I already take?",
+      "url": "/student/5a4d0000-0000-0000-0000-000000000102/check",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

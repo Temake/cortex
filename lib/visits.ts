@@ -37,7 +37,14 @@ export const CARE_EVENT_TYPES = {
 export const ALL_CARE_EVENT_TYPES = [...new Set(Object.values(CARE_EVENT_TYPES))];
 
 /** Tag on every event this app writes, so we can tell ours from seeded demo data. */
-export const APP_TAG = "carebridge-oau";
+export const APP_TAG = "cortex-oau";
+
+/**
+ * The tag this app used before it was renamed. Events already on the sandbox
+ * twin carry it, and they are still ours — so reads accept both. Writes only
+ * ever use APP_TAG.
+ */
+const LEGACY_APP_TAGS = ["carebridge-oau"];
 
 export type Vitals = {
   temp?: string | number | null;
@@ -73,8 +80,8 @@ export type CareEvent = {
   vocabularyId: string | null;
   /** Structured vitals, present only on a VITALS event. */
   vitals: Vitals | null;
-  /** True when this event was written by CareBridge rather than pre-existing twin data. */
-  fromCareBridge: boolean;
+  /** True when this event was written by Cortex rather than pre-existing twin data. */
+  fromCortex: boolean;
 };
 
 function str(value: unknown): string | null {
@@ -144,7 +151,9 @@ export function toCareEvent(event: HealthEvent): CareEvent {
     conceptName: str(data.conceptName),
     vocabularyId: str(data.vocabularyId),
     vitals: (data.vitals as Vitals) ?? null,
-    fromCareBridge: data.app === APP_TAG,
+    fromCortex:
+      typeof data.app === "string" &&
+      (data.app === APP_TAG || LEGACY_APP_TAGS.includes(data.app)),
   };
 }
 
@@ -179,7 +188,7 @@ export type MedicationRecord = {
 /**
  * The twin's current medication list, most recent first.
  *
- * Matches both the events CareBridge writes (`code === "MEDICATION"`) and any
+ * Matches both the events Cortex writes (`code === "MEDICATION"`) and any
  * pre-existing medication events already on the twin, so the interaction check
  * runs against the patient's whole record rather than only this app's writes.
  */

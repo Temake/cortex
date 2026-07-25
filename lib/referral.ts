@@ -22,7 +22,15 @@ import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 import { env } from "./env";
 
-const PREFIX = "cbr1";
+const PREFIX = "ctx1";
+
+/**
+ * The prefix used before the app was renamed. Tokens already handed out during
+ * a demo keep working; only new tokens carry PREFIX.
+ */
+const LEGACY_PREFIXES = ["cbr1"];
+
+const ALL_PREFIXES = [PREFIX, ...LEGACY_PREFIXES];
 
 export type ReferralClaims = {
   /** Referral record id — also used as the `grantId` the frontend routes on. */
@@ -84,12 +92,12 @@ export function createReferralToken(
 
 /** True when `token` looks like one of ours rather than a raw DTP grant JWT. */
 export function isReferralToken(token: string): boolean {
-  return token.startsWith(`${PREFIX}.`);
+  return ALL_PREFIXES.some((p) => token.startsWith(`${p}.`));
 }
 
 export function verifyReferralToken(token: string): ReferralClaims {
   const parts = token.split(".");
-  if (parts.length !== 3 || parts[0] !== PREFIX) {
+  if (parts.length !== 3 || !ALL_PREFIXES.includes(parts[0])) {
     throw new ReferralTokenError("Referral token is malformed.", "INVALID_REFERRAL_TOKEN");
   }
 

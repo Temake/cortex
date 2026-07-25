@@ -93,7 +93,7 @@ async function main() {
       hostel: "Angola",
       app: APP_TAG,
       recordedBy: "nurse" as const,
-      seed: "carebridge-seed-v2",
+      seed: "cortex-seed-v2",
     };
 
     for (const seed of missing) {

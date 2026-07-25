@@ -67,7 +67,7 @@ async function main() {
   line(`  referralId    ${refer.referralId}`);
   line(`  expiresAt     ${refer.expiresAt}`);
   line(`  link          ${String(refer.link).slice(0, 80)}…`);
-  assert(typeof grantToken === "string" && grantToken.startsWith("cbr1."), "issues a referral token");
+  assert(typeof grantToken === "string" && grantToken.startsWith("ctx1."), "issues a referral token");
   assert(typeof refer.link === "string", "returns a shareable link for the QR code");
   assert(!JSON.stringify(refer).includes("eyJhbGciOiJIUzI1NiJ9"), "does NOT leak the sandbox grant token");
 
@@ -162,7 +162,7 @@ async function main() {
   const badToken = await fetch(`${BASE}/api/doctor/history`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ grantToken: "cbr1.bogus.bogus" }),
+    body: JSON.stringify({ grantToken: "ctx1.bogus.bogus" }),
   });
   const badBody = (await badToken.json()) as Record<string, unknown>;
   assert(badBody.ok === false, "rejects a forged referral token");
